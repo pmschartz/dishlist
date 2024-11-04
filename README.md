@@ -2,8 +2,6 @@
 
 A beautiful web application for tracking and rating your restaurant dining experiences. Built with React, TypeScript, Firebase, and Tailwind CSS.
 
-![Meal Tracker Screenshot](https://images.unsplash.com/photo-1532980400857-e8d9d275d858?auto=format&fit=crop&q=80&w=1200)
-
 ## Features
 
 - 🔐 Google Authentication
@@ -17,7 +15,7 @@ A beautiful web application for tracking and rating your restaurant dining exper
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - npm or yarn
 - Firebase account
 
