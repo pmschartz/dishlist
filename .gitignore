@@ -7,3 +7,5 @@ dist-ssr
 .history
 *.local
 .DS_Store
+.firebase
+*.tsbuildinfo

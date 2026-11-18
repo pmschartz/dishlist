@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
 import { Combobox } from './Combobox';
+import type { Meal } from '../types';
 
 interface MealFormProps {
   onSubmit: (meal: Omit<Meal, 'id' | 'date'>) => void;

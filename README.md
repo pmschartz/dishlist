@@ -74,17 +74,10 @@ npm run preview
 1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com)
 2. Enable Authentication and Google sign-in method
 3. Create a Firestore database
-4. Set up Firestore security rules:
+4. Deploy the Firestore security rules in [`firestore.rules`](firestore.rules) (each user can only see and change their own meals):
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /meals/{mealId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-  }
-}
+```bash
+firebase deploy --only firestore:rules
 ```
 
 ## Project Structure

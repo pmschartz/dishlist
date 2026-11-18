@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { UtensilsCrossed, LogOut } from 'lucide-react';
 import { MealForm } from './components/MealForm';
 import { MealCard } from './components/MealCard';
