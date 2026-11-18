@@ -11,7 +11,9 @@ A beautiful web application for tracking and rating your restaurant dining exper
 - 📸 Meal photos (resized in the browser, stored in Firebase Storage)
 - 💰 Price tracking
 - 🔎 Search, filter by restaurant, and sort by date, rating or price
-- 🔄 Works offline: meals are cached on the device, and changes sync when you reconnect (photos need a connection)
+- 📊 Stats: meals per month, spending, average rating, top restaurants and dishes
+- 🔄 Works offline: the app opens with no connection, meals are cached on the device, and changes sync when you reconnect (photos need a connection)
+- 📲 Installable on your phone or desktop (Progressive Web App)
 - 📱 Responsive design
 
 ## Prerequisites
@@ -64,6 +66,18 @@ npm run typecheck
 npm run lint
 ```
 
+Test the Firestore and Storage security rules against the local Firebase emulators. This needs Java 21 or newer (on macOS: `brew install openjdk@21`) and uses a `demo-` project, so it never touches your real Firebase project:
+
+```bash
+npm run test:rules
+```
+
+The app icons in `public/` are generated from `public/icon.svg`. After changing it, regenerate them:
+
+```bash
+npm run generate-icons
+```
+
 ## Building for Production
 
 Build the application:
@@ -72,7 +86,7 @@ Build the application:
 npm run build
 ```
 
-Preview the production build:
+Preview the production build (the service worker, offline support, and install prompt only run in a production build):
 
 ```bash
 npm run preview
@@ -94,22 +108,26 @@ firebase deploy --only firestore:rules,storage
 
 ```
 src/
-├── components/         # React components
-├── contexts/          # Context providers
-├── lib/              # Firebase and other configurations
-├── services/         # API and service functions
-├── types/            # TypeScript type definitions
-└── App.tsx           # Main application component
+├── components/       # React components (and their *.test.tsx files)
+├── contexts/         # Auth context, provider, and useAuth hook
+├── lib/              # Firebase setup, stats, filtering, image resizing, helpers
+├── services/         # Reading and writing meals and photos
+├── types.ts          # Shared TypeScript types
+└── App.tsx           # Login page or the signed-in meals page
+tests/rules/          # Security rules tests (run on the Firebase emulators)
+public/               # App icons and other static files
+firestore.rules       # Firestore security rules
+storage.rules         # Storage security rules
 ```
 
 ## Key Technologies
 
-- React 18
-- TypeScript
-- Firebase (Authentication & Firestore)
-- Tailwind CSS
-- Vite
-- Lucide React Icons
+- React 19 and TypeScript
+- Firebase 13 (Authentication, Firestore with offline cache, Storage, Hosting)
+- Tailwind CSS 4
+- Vite 8 with vite-plugin-pwa
+- Vitest and Testing Library
+- Lucide React icons
 
 ## Contributing
 
