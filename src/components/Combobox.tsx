@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 
 interface ComboboxProps {

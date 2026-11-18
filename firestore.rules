@@ -2,6 +2,27 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Each meal belongs to the user whose uid is stored in its userId field.
+    match /meals/{mealId} {
+      // Existing documents: only the owner can read (including list queries
+      // filtered by userId) or delete them.
+      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+
+      // New documents: `resource` doesn't exist yet, so check the incoming data.
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+
+      // Updates: must own it, and can't hand it to someone else.
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Everything else is closed.
     match /{document=**} {
       allow read, write: if false;
     }
