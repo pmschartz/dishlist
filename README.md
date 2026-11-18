@@ -8,14 +8,13 @@ A beautiful web application for tracking and rating your restaurant dining exper
 - 📝 Track restaurant meals with ratings
 - 🏪 Auto-complete restaurant names
 - ⭐ 5-star rating system
-- 📸 Image upload support
+- 📸 Meal photos (resized in the browser, stored in Firebase Storage)
 - 💰 Price tracking
 - 📱 Responsive design
-- 🔄 Offline support with data persistence
 
 ## Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js 20.19+ or 22.12+
 - npm or yarn
 - Firebase account
 
@@ -25,7 +24,7 @@ A beautiful web application for tracking and rating your restaurant dining exper
 
 ```bash
 git clone <repository-url>
-cd restaurant-meal-tracker
+cd meal-tracker
 ```
 
 2. Install dependencies:
@@ -55,6 +54,14 @@ npm run dev
 
 The application will be available at `http://localhost:5173`
 
+Run the tests (`npm run test:watch` to re-run on changes), type check, and lint:
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+```
+
 ## Building for Production
 
 Build the application:
@@ -74,10 +81,11 @@ npm run preview
 1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com)
 2. Enable Authentication and Google sign-in method
 3. Create a Firestore database
-4. Deploy the Firestore security rules in [`firestore.rules`](firestore.rules) (each user can only see and change their own meals):
+4. Set up Cloud Storage for photos. New projects need the Blaze (pay-as-you-go) plan for Storage; personal use normally stays within the no-cost allowance. Put the bucket name (e.g. `your-project.firebasestorage.app`) in `VITE_FIREBASE_STORAGE_BUCKET`.
+5. Deploy the security rules in [`firestore.rules`](firestore.rules) and [`storage.rules`](storage.rules) (each user can only see and change their own meals and photos):
 
 ```bash
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules,storage
 ```
 
 ## Project Structure

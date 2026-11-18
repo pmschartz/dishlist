@@ -1,68 +1,99 @@
+import { useState } from 'react';
 import { Star, Trash2 } from 'lucide-react';
 import type { Meal } from '../types';
 
 interface MealCardProps {
   meal: Meal;
-  onDelete: (id: string) => void;
+  /** Delete the meal. Reject to keep the card and let the parent report the error. */
+  onDelete: (meal: Meal) => Promise<void>;
 }
 
+const priceFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
 export function MealCard({ meal, onDelete }: MealCardProps) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const formattedDate = new Date(meal.date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(meal);
+    } catch {
+      // The parent shows the error; put the card back to normal.
+      setDeleting(false);
+      setConfirming(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <article className="bg-white rounded-xl shadow-lg overflow-hidden">
       {meal.imageUrl && (
         <div className="relative h-48">
-          <img
-            src={meal.imageUrl}
-            alt={meal.dishName}
-            className="w-full h-full object-cover"
-          />
+          <img src={meal.imageUrl} alt={meal.dishName} loading="lazy" className="w-full h-full object-cover" />
         </div>
       )}
       <div className="p-6">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start gap-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{meal.dishName}</h3>
             <p className="text-sm text-gray-600">{meal.restaurantName}</p>
           </div>
-          <button
-            onClick={() => onDelete(meal.id)}
-            className="text-gray-400 hover:text-red-500 transition-colors"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
+          {!confirming && (
+            <button
+              onClick={() => setConfirming(true)}
+              aria-label={`Delete ${meal.dishName}`}
+              className="text-gray-400 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        
-        <div className="mt-4 flex items-center gap-1">
+
+        {confirming && (
+          <div className="mt-4 flex items-center justify-between gap-2 rounded-md bg-red-50 px-3 py-2">
+            <span className="text-sm text-red-700">Delete this meal?</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirming(false)}
+                disabled={deleting}
+                className="rounded px-2 py-1 text-sm text-gray-700 hover:bg-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded bg-red-600 px-2 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center gap-1" role="img" aria-label={`Rated ${meal.rating} out of 5`}>
           {[...Array(5)].map((_, i) => (
             <Star
               key={i}
-              className={`w-5 h-5 ${
-                i < meal.rating
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : 'text-gray-300'
-              }`}
+              className={`w-5 h-5 ${i < meal.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
             />
           ))}
         </div>
 
-        {meal.price && (
-          <p className="mt-2 text-sm text-gray-600">
-            Price: ${meal.price.toFixed(2)}
-          </p>
+        {meal.price != null && (
+          <p className="mt-2 text-sm text-gray-600">Price: {priceFormat.format(meal.price)}</p>
         )}
 
-        {meal.notes && (
-          <p className="mt-2 text-sm text-gray-600">{meal.notes}</p>
-        )}
+        {meal.notes && <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{meal.notes}</p>}
 
         <p className="mt-4 text-xs text-gray-500">{formattedDate}</p>
       </div>
-    </div>
+    </article>
   );
 }

@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Meal photos: users/{uid}/meals/{mealId}.jpg (see imagePathFor in mealService.ts).
+    match /users/{userId}/meals/{fileName} {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+
+      // The app resizes photos to well under 1 MB before uploading;
+      // 5 MB leaves headroom while blocking oversized uploads.
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Everything else is closed.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
