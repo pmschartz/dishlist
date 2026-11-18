@@ -1,5 +1,5 @@
 import { UtensilsCrossed } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 export function LoginPage() {
   const { signInWithGoogle } = useAuth();

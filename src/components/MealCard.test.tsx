@@ -60,4 +60,20 @@ describe('MealCard', () => {
     render(<MealCard meal={meal} onDelete={vi.fn()} />);
     expect(screen.getByRole('img', { name: 'Rated 3 out of 5' })).toBeInTheDocument();
   });
+
+  it('has an Edit button when editing is available', async () => {
+    const onEdit = vi.fn();
+    render(<MealCard meal={meal} onDelete={vi.fn()} onEdit={onEdit} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Carbonara' }));
+    expect(onEdit).toHaveBeenCalledWith(meal);
+  });
+
+  it('shows when changes are waiting to sync', () => {
+    const { rerender } = render(<MealCard meal={meal} onDelete={vi.fn()} pendingSync />);
+    expect(screen.getByText('Waiting to sync')).toBeInTheDocument();
+
+    rerender(<MealCard meal={meal} onDelete={vi.fn()} />);
+    expect(screen.queryByText('Waiting to sync')).not.toBeInTheDocument();
+  });
 });

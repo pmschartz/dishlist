@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import { Star, Trash2 } from 'lucide-react';
+import { CloudOff, Pencil, Star, Trash2 } from 'lucide-react';
 import type { Meal } from '../types';
 
 interface MealCardProps {
   meal: Meal;
   /** Delete the meal. Reject to keep the card and let the parent report the error. */
   onDelete: (meal: Meal) => Promise<void>;
+  onEdit?: (meal: Meal) => void;
+  /** This meal is open in the edit form. */
+  isEditing?: boolean;
+  /** Changes to this meal are saved on this device but not yet on the server. */
+  pendingSync?: boolean;
 }
 
 const priceFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-export function MealCard({ meal, onDelete }: MealCardProps) {
+export function MealCard({ meal, onDelete, onEdit, isEditing, pendingSync }: MealCardProps) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -32,7 +37,10 @@ export function MealCard({ meal, onDelete }: MealCardProps) {
   };
 
   return (
-    <article className="bg-white rounded-xl shadow-lg overflow-hidden">
+    <article
+      aria-label={meal.dishName}
+      className={`bg-white rounded-xl shadow-lg overflow-hidden ${isEditing ? 'ring-2 ring-indigo-500' : ''}`}
+    >
       {meal.imageUrl && (
         <div className="relative h-48">
           <img src={meal.imageUrl} alt={meal.dishName} loading="lazy" className="w-full h-full object-cover" />
@@ -45,15 +53,33 @@ export function MealCard({ meal, onDelete }: MealCardProps) {
             <p className="text-sm text-gray-600">{meal.restaurantName}</p>
           </div>
           {!confirming && (
-            <button
-              onClick={() => setConfirming(true)}
-              aria-label={`Delete ${meal.dishName}`}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <div className="flex shrink-0 gap-3">
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(meal)}
+                  aria-label={`Edit ${meal.dishName}`}
+                  className="text-gray-400 hover:text-indigo-600 transition-colors"
+                >
+                  <Pencil className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                onClick={() => setConfirming(true)}
+                aria-label={`Delete ${meal.dishName}`}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           )}
         </div>
+
+        {pendingSync && (
+          <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+            <CloudOff className="h-3 w-3" />
+            Waiting to sync
+          </p>
+        )}
 
         {confirming && (
           <div className="mt-4 flex items-center justify-between gap-2 rounded-md bg-red-50 px-3 py-2">

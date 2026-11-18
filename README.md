@@ -5,11 +5,13 @@ A beautiful web application for tracking and rating your restaurant dining exper
 ## Features
 
 - 🔐 Google Authentication
-- 📝 Track restaurant meals with ratings
+- 📝 Track restaurant meals with ratings, and edit or delete them later
 - 🏪 Auto-complete restaurant names
 - ⭐ 5-star rating system
 - 📸 Meal photos (resized in the browser, stored in Firebase Storage)
 - 💰 Price tracking
+- 🔎 Search, filter by restaurant, and sort by date, rating or price
+- 🔄 Works offline: meals are cached on the device, and changes sync when you reconnect (photos need a connection)
 - 📱 Responsive design
 
 ## Prerequisites

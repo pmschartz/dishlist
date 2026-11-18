@@ -13,13 +13,18 @@ export interface Meal {
   price?: number;
 }
 
-/** What the form hands over when adding a meal. */
-export interface NewMeal {
+/** What the form hands over when adding or editing a meal. */
+export interface MealInput {
   restaurantName: string;
   dishName: string;
   rating: number;
   notes: string;
   price?: number;
-  /** Already-resized photo to upload, if any. */
+  /**
+   * Photo change, already resized:
+   * - a Blob uploads it (replacing any existing photo)
+   * - null means no photo (removes the existing one when editing)
+   * - undefined keeps the current photo when editing
+   */
   image?: Blob | null;
 }
