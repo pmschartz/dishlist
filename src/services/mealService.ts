@@ -11,7 +11,8 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db } from '../lib/firestore';
+import { storage } from '../lib/storage';
 import type { Meal, MealInput } from '../types';
 
 export const PHOTO_NEEDS_CONNECTION =
