@@ -1,37 +1,51 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Star } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
 import { Combobox } from './Combobox';
-import type { Meal } from '../types';
+import { resizeImage } from '../lib/resizeImage';
+import type { NewMeal } from '../types';
 
 interface MealFormProps {
-  onSubmit: (meal: Omit<Meal, 'id' | 'date'>) => void;
+  /** Save the meal. Reject to keep the form filled in and show the error. */
+  onSubmit: (meal: NewMeal) => Promise<void>;
   restaurants: string[];
 }
 
 export function MealForm({ onSubmit, restaurants }: MealFormProps) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [imageUrl, setImageUrl] = useState('');
+  const [photo, setPhoto] = useState<File | null>(null);
   const [restaurantName, setRestaurantName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    onSubmit({
-      restaurantName,
-      dishName: formData.get('dishName') as string,
-      rating,
-      imageUrl,
-      notes: formData.get('notes') as string,
-      price: parseFloat(formData.get('price') as string) || undefined,
-    });
-    
-    e.currentTarget.reset();
-    setRating(0);
-    setImageUrl('');
-    setRestaurantName('');
+    // Grab the form now; React clears e.currentTarget once we await.
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const priceText = String(formData.get('price') ?? '').trim();
+
+    setSaving(true);
+    setError(null);
+    try {
+      await onSubmit({
+        restaurantName: restaurantName.trim(),
+        dishName: String(formData.get('dishName') ?? '').trim(),
+        rating,
+        notes: String(formData.get('notes') ?? '').trim(),
+        price: priceText === '' ? undefined : Number(priceText),
+        image: photo ? await resizeImage(photo) : null,
+      });
+      form.reset();
+      setRating(0);
+      setPhoto(null);
+      setRestaurantName('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -42,9 +56,11 @@ export function MealForm({ onSubmit, restaurants }: MealFormProps) {
             Restaurant Name
           </label>
           <Combobox
+            id="restaurantName"
             options={restaurants}
             value={restaurantName}
             onChange={setRestaurantName}
+            disabled={saving}
             placeholder="Select restaurant or enter new..."
           />
         </div>
@@ -58,6 +74,7 @@ export function MealForm({ onSubmit, restaurants }: MealFormProps) {
             type="text"
             name="dishName"
             id="dishName"
+            disabled={saving}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500"
           />
         </div>
@@ -72,19 +89,24 @@ export function MealForm({ onSubmit, restaurants }: MealFormProps) {
               type="number"
               name="price"
               id="price"
+              min="0"
               step="0.01"
+              disabled={saving}
               className="block w-full rounded-md border border-gray-300 pl-7 pr-3 py-2 focus:border-indigo-500 focus:ring-indigo-500"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+        <fieldset>
+          <legend className="block text-sm font-medium text-gray-700 mb-2">Rating</legend>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
+                aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                aria-pressed={star === rating}
+                disabled={saving}
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
@@ -92,17 +114,15 @@ export function MealForm({ onSubmit, restaurants }: MealFormProps) {
               >
                 <Star
                   className={`w-8 h-8 ${
-                    star <= (hoveredRating || rating)
-                      ? 'fill-yellow-400 text-yellow-400'
-                      : 'text-gray-300'
+                    star <= (hoveredRating || rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
                   }`}
                 />
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
-        <ImageUpload value={imageUrl} onChange={setImageUrl} />
+        <ImageUpload file={photo} onChange={setPhoto} disabled={saving} />
 
         <div>
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
@@ -112,17 +132,24 @@ export function MealForm({ onSubmit, restaurants }: MealFormProps) {
             name="notes"
             id="notes"
             rows={3}
+            disabled={saving}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500"
           />
         </div>
       </div>
 
+      {error && (
+        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          Couldn't save this meal: {error}
+        </p>
+      )}
+
       <button
         type="submit"
-        disabled={!restaurantName}
+        disabled={!restaurantName.trim() || saving}
         className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Add Meal
+        {saving ? 'Saving…' : 'Add Meal'}
       </button>
     </form>
   );
