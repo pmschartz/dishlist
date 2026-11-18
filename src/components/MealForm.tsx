@@ -88,7 +88,7 @@ export function MealForm({ onSubmit, restaurants }: MealFormProps) {
                 onClick={() => setRating(star)}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
-                className="focus:outline-none"
+                className="focus:outline-hidden"
               >
                 <Star
                   className={`w-8 h-8 ${
