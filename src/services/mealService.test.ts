@@ -22,7 +22,8 @@ const storage = vi.hoisted(() => ({
 
 vi.mock('firebase/firestore', () => firestore);
 vi.mock('firebase/storage', () => storage);
-vi.mock('../lib/firebase', () => ({ db: {}, storage: {} }));
+vi.mock('../lib/firestore', () => ({ db: {} }));
+vi.mock('../lib/storage', () => ({ storage: {} }));
 
 import {
   addMeal,
