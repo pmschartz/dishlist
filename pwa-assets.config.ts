@@ -8,8 +8,8 @@ export default defineConfig({
     ...minimal2023Preset,
     // Maskable and Apple icons get cropped to various shapes, so give them the brand color
     // edge to edge instead of the default white.
-    maskable: { ...minimal2023Preset.maskable, resizeOptions: { background: '#4f46e5' } },
-    apple: { ...minimal2023Preset.apple, resizeOptions: { background: '#4f46e5' } },
+    maskable: { ...minimal2023Preset.maskable, resizeOptions: { background: '#d4321a' } },
+    apple: { ...minimal2023Preset.apple, resizeOptions: { background: '#d4321a' } },
   },
   images: ['public/icon.svg'],
 });

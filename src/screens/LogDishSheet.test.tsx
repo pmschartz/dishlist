@@ -1,0 +1,157 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+const resized = new Blob(['small'], { type: 'image/jpeg' });
+vi.mock('../lib/resizeImage', () => ({ resizeImage: vi.fn(async () => resized) }));
+
+import { LogDishSheet } from './LogDishSheet';
+import { groupDishes } from '../lib/dishes';
+import type { Meal } from '../types';
+
+const past: Meal[] = [
+  {
+    id: 'p1',
+    restaurantName: 'Lotus Thai Kitchen',
+    dishName: 'Pad see ew',
+    rating: 5,
+    verdict: 'again',
+    tweaks: [{ kind: 'remove', text: 'No onions' }],
+    imageUrl: '',
+    notes: '',
+    date: '2026-10-01T00:00:00.000Z',
+  },
+];
+const dishes = groupDishes(past);
+
+beforeEach(() => {
+  URL.createObjectURL = vi.fn(() => 'blob:preview');
+  URL.revokeObjectURL = vi.fn();
+});
+
+const field = (name: string) => screen.getByLabelText(name, { exact: false, selector: 'input, textarea' });
+
+describe('LogDishSheet', () => {
+  it('asks for a restaurant and dish before saving', async () => {
+    const onSave = vi.fn();
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Pick a restaurant so we can file this dish.')).toBeInTheDocument();
+    expect(screen.getByText('Name the dish so you can find it later.')).toBeInTheDocument();
+  });
+
+  it('saves everything: rating, verdict, tweaks, price, notes and the resized photo', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.type(field('Restaurant'), '  Bao Down ');
+    await userEvent.type(field('Dish'), 'Pork belly bao');
+    await userEvent.click(screen.getByRole('radio', { name: '4 plates, Good' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Order again' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add a tweak' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Add' }));
+    await userEvent.type(field('Tweak'), 'Extra pickles{Enter}');
+    await userEvent.upload(screen.getByLabelText('Choose a photo'), new File(['big'], 'bao.jpg', { type: 'image/jpeg' }));
+    await userEvent.type(field('Price'), '9.50');
+    await userEvent.type(field('Notes'), 'Crispy edges');
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+
+    expect(onSave).toHaveBeenCalledWith({
+      restaurantName: 'Bao Down',
+      dishName: 'Pork belly bao',
+      rating: 4,
+      verdict: 'again',
+      tweaks: [{ kind: 'add', text: 'Extra pickles' }],
+      notes: 'Crispy edges',
+      price: 9.5,
+      image: resized,
+    });
+  });
+
+  it('lets you remove a tweak and clear a verdict by tapping it again', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <LogDishSheet
+        mode={{ kind: 'new', prefill: { dishName: 'Pad see ew', restaurantName: 'Lotus Thai Kitchen', verdict: 'again', tweaks: [{ kind: 'remove', text: 'No onions' }] } }}
+        dishes={dishes}
+        onSave={onSave}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove tweak: No onions' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Order again' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+
+    expect(onSave.mock.calls[0][0]).toMatchObject({ tweaks: [], verdict: undefined, image: null, price: undefined });
+  });
+
+  it('fills in your verdict and tweaks from the last time you had the dish', async () => {
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={dishes} onSave={vi.fn()} onClose={vi.fn()} />);
+
+    await userEvent.type(field('Restaurant'), 'lotus thai kitchen');
+    await userEvent.type(field('Dish'), 'PAD SEE EW');
+    await userEvent.tab();
+
+    expect(screen.getByText('Filled in from the last time you had Pad see ew.')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Order again' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('No onions')).toBeInTheDocument();
+  });
+
+  it('rejects a price that is not a number', async () => {
+    const onSave = vi.fn();
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.type(field('Price'), 'eighteen');
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter a price like 18 or 18.50.')).toBeInTheDocument();
+  });
+
+  it('keeps everything and shows the error if saving fails', async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error('Photos can only be added while you’re online.'));
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByText("Couldn't save this dish")).toBeInTheDocument();
+    expect(field('Dish')).toHaveValue('Bao');
+    expect(screen.getByRole('button', { name: 'Save dish' })).toBeEnabled();
+  });
+
+  it('edits a meal: starts filled in, keeps the photo unless changed, and says Save changes', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const meal: Meal = { ...past[0], imageUrl: 'https://x/photo.jpg', price: 16, notes: 'Great' };
+    render(<LogDishSheet mode={{ kind: 'edit', meal }} dishes={dishes} onSave={onSave} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('dialog', { name: 'Edit dish' })).toBeInTheDocument();
+    expect(field('Price')).toHaveValue('16');
+    expect(screen.getByRole('radio', { name: '5 plates, Obsessed' })).toHaveAttribute('aria-checked', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ dishName: 'Pad see ew', price: 16, notes: 'Great', image: undefined });
+  });
+
+  it('removes the saved photo when asked', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'edit', meal: { ...past[0], imageUrl: 'https://x/photo.jpg' } }} dishes={dishes} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove photo' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(onSave.mock.calls[0][0].image).toBeNull();
+  });
+
+  it('closes on Escape', async () => {
+    const onClose = vi.fn();
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={[]} onSave={vi.fn()} onClose={onClose} />);
+
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalled();
+  });
+});

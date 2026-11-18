@@ -1,20 +1,20 @@
-# Restaurant Meal Tracker
+# Dishlist
 
-A beautiful web application for tracking and rating your restaurant dining experiences. Built with React, TypeScript, Firebase, and Tailwind CSS.
+Review sites rate the restaurant; Dishlist rates the **dish**. Log what you ordered, rate it, decide whether you'd order it again, and save how you want it next time ("No onions"). Built with React, TypeScript and Firebase, designed with the [Dishlist design system](https://claude.ai/artifact/AuY3txMqoPVdsadZ3Z2mWd).
 
 ## Features
 
-- 🔐 Google Authentication
-- 📝 Track restaurant meals with ratings, and edit or delete them later
-- 🏪 Auto-complete restaurant names
-- ⭐ 5-star rating system
-- 📸 Meal photos (resized in the browser, stored in Firebase Storage)
-- 💰 Price tracking
-- 🔎 Search, filter by restaurant, and sort by date, rating or price
-- 📊 Stats: meals per month, spending, average rating, top restaurants and dishes
-- 🔄 Works offline: the app opens with no connection, meals are cached on the device, and changes sync when you reconnect (photos need a connection)
-- 📲 Installable on your phone or desktop (Progressive Web App)
-- 📱 Responsive design
+- 🍽️ Rate dishes 1–5 plates (Nope, Meh, Fine, Good, Obsessed) and give each a verdict: Order again, Maybe, or Skip it
+- 📝 "Next time" tweaks you'd tell the server (No onions, Extra chili crisp, Sauce on the side), filled in automatically when you log a dish again
+- 🔁 Every time you have a dish is kept: its history, how often you've ordered it, and its average rating
+- 📍 Places summed up by their dishes (never an averaged restaurant score), with a "Next time here" note for your next visit
+- 📸 Photos, resized in the browser and stored in Firebase Storage
+- 🔎 Search dishes, places, notes and tweaks; filter by verdict; sort by recent, rating or times ordered
+- ↩️ Undo after deleting
+- 📊 Your numbers: dishes per month, spending, favorites, where you go most
+- 🔄 Works offline: the app opens with no connection, dishes are cached on the device, and changes sync when you reconnect (photos need a connection)
+- 📲 Installable on your phone or desktop (Progressive Web App), with light and dark themes
+- 🔐 Google sign-in; your dishes are private to your account
 
 ## Prerequisites
 
@@ -108,26 +108,36 @@ firebase deploy --only firestore:rules,storage
 
 ```
 src/
-├── components/       # React components (and their *.test.tsx files)
+├── app/              # App shell (navigation, toasts, sign-out), router, update prompt
+├── screens/          # Home, Dishes, Dish, Places, Place, Me, Log a dish sheet, Login
+├── ui/               # Dishlist design system components, ported to typed React
+├── design/           # Design system tokens (tokens.json → tokens.css), component CSS, fonts, logos
 ├── contexts/         # Auth context, provider, and useAuth hook
-├── lib/              # Firebase setup, stats, filtering, image resizing, helpers
+├── lib/              # Firebase setup, dish grouping, stats, filtering, formatting, image resizing
 ├── services/         # Reading and writing meals and photos
 ├── types.ts          # Shared TypeScript types
-└── App.tsx           # Login page or the signed-in meals page
+└── App.tsx           # Login screen or the signed-in app
 tests/rules/          # Security rules tests (run on the Firebase emulators)
 public/               # App icons and other static files
 firestore.rules       # Firestore security rules
 storage.rules         # Storage security rules
 ```
 
+## Design system
+
+The look and the product rules (dish first, plates not stars, a skipped dish is information rather than an error) come from the [Dishlist design system](https://claude.ai/artifact/AuY3txMqoPVdsadZ3Z2mWd). `src/design/` holds a copy of its tokens, component stylesheet, fonts and logos, and `src/ui/` ports its components. After updating `src/design/tokens.json`, regenerate the CSS variables:
+
+```bash
+npm run generate-tokens
+```
+
 ## Key Technologies
 
 - React 19 and TypeScript
 - Firebase 13 (Authentication, Firestore with offline cache, Storage, Hosting)
-- Tailwind CSS 4
 - Vite 8 with vite-plugin-pwa
+- Gabarito and Figtree (SIL Open Font License, in `src/design/fonts/`)
 - Vitest and Testing Library
-- Lucide React icons
 
 ## Contributing
 
@@ -143,5 +153,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Icons by [Lucide](https://lucide.dev)
-- UI Components inspired by [Tailwind UI](https://tailwindui.com)
+- Design, icons and logos from the Dishlist design system
+- [Gabarito](https://fonts.google.com/specimen/Gabarito) and [Figtree](https://fonts.google.com/specimen/Figtree), under the SIL Open Font License (see `src/design/fonts/`)

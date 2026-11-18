@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './contexts/AuthProvider';
-import { UpdatePrompt } from './components/UpdatePrompt';
+import { UpdatePrompt } from './app/UpdatePrompt';
 import App from './App.tsx';
 import './index.css';
 
