@@ -69,7 +69,7 @@ export function Combobox({
       {open && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5"
         >
           {filteredOptions.length === 0 && !showAddNew ? (
             <div className="relative px-3 py-2 text-gray-500">
