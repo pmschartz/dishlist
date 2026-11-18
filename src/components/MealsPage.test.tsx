@@ -13,6 +13,8 @@ const service = vi.hoisted(() => ({
 }));
 vi.mock('../services/mealService', () => service);
 vi.mock('../lib/resizeImage', () => ({ resizeImage: vi.fn() }));
+const offline = vi.hoisted(() => ({ clearOfflineData: vi.fn(async () => {}), reloadApp: vi.fn() }));
+vi.mock('../lib/offlineData', () => offline);
 
 import { MealsPage } from './MealsPage';
 
@@ -43,6 +45,7 @@ const meals: Meal[] = [
 let pushSnapshot: (snapshot: MealsSnapshot) => void;
 
 beforeEach(() => {
+  vi.clearAllMocks();
   service.subscribeToMeals.mockImplementation((_uid: string, onChange: typeof pushSnapshot) => {
     pushSnapshot = onChange;
     onChange({ meals, pendingIds: new Set(['b']) });
@@ -152,5 +155,39 @@ describe('MealsPage', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: 'Meals' }));
     expect(screen.getByRole('form', { name: 'Add a meal' })).toBeInTheDocument();
+  });
+
+  it('signs out, clears offline data, then reloads', async () => {
+    service.subscribeToMeals.mockImplementationOnce((_uid: string, onChange: typeof pushSnapshot) => {
+      onChange({ meals, pendingIds: new Set() });
+      return vi.fn();
+    });
+    const onLogout = vi.fn().mockResolvedValue(undefined);
+    render(<MealsPage user={user} onLogout={onLogout} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
+
+    expect(onLogout).toHaveBeenCalled();
+    expect(offline.clearOfflineData).toHaveBeenCalled();
+    expect(offline.reloadApp).toHaveBeenCalled();
+    expect(offline.clearOfflineData.mock.invocationCallOrder[0]).toBeGreaterThan(onLogout.mock.invocationCallOrder[0]);
+  });
+
+  it('warns before signing out with unsynced changes', async () => {
+    const onLogout = vi.fn().mockResolvedValue(undefined);
+    render(<MealsPage user={user} onLogout={onLogout} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('1 change hasn’t synced yet');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Stay signed in' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(onLogout).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out anyway' }));
+    expect(onLogout).toHaveBeenCalled();
+    expect(offline.clearOfflineData).toHaveBeenCalled();
   });
 });
