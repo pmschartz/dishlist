@@ -52,7 +52,7 @@ async function uploadPhoto(path: string, image: Blob) {
 }
 
 /** Delete a photo, logging instead of failing: a leftover file isn't worth an error. */
-async function removePhoto(path: string | undefined) {
+export async function removePhoto(path: string | undefined) {
   if (!path) return;
   await deleteObject(ref(storage, path)).catch((error) => {
     console.warn('Could not delete photo', path, error);
@@ -98,8 +98,9 @@ export async function updateMeal(meal: Meal, input: MealInput, userId: string): 
   const { image, ...fields } = input;
   const changes: Record<string, unknown> = {
     ...fields,
-    // Clearing the price removes the field rather than storing undefined.
+    // Clearing the price or verdict removes the field rather than storing undefined.
     price: fields.price ?? deleteField(),
+    verdict: fields.verdict ?? deleteField(),
   };
 
   let replacedPhoto: string | undefined;
@@ -155,8 +156,18 @@ export function subscribeToMeals(
   );
 }
 
-export async function deleteMeal(meal: Meal): Promise<void> {
+/**
+ * Delete a meal. With `keepPhoto`, the photo stays in Storage so an Undo can bring the meal
+ * back whole; call removePhoto(meal.imagePath) once the undo window has passed.
+ */
+export async function deleteMeal(meal: Meal, { keepPhoto = false } = {}): Promise<void> {
   await commit(deleteDoc(doc(db, 'meals', meal.id)), 'delete');
   // Offline, this fails and the photo is left behind in Storage; the meal is still deleted.
-  await removePhoto(meal.imagePath);
+  if (!keepPhoto) await removePhoto(meal.imagePath);
+}
+
+/** Undo a delete: write the meal back under its original id. */
+export async function restoreMeal(meal: Meal, userId: string): Promise<void> {
+  const { id, ...fields } = meal;
+  await commit(setDoc(doc(db, 'meals', id), { ...withoutUndefined(fields), userId }), 'restore');
 }

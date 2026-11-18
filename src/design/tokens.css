@@ -1,0 +1,193 @@
+/* Dishlist — generated from tokens.json by scripts/generate-tokens.mjs. Do not edit by hand. */
+@font-face {
+  font-family: "Gabarito";
+  src: url("./fonts/Gabarito-Variable.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("./fonts/Figtree-Variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("./fonts/Figtree-Italic-Variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --surface: #fff7ef;
+  --surface-raised: #ffffff;
+  --surface-sunken: #fcebdd;
+  --surface-inverse: #2b1511;
+  --line: #f0dccb;
+  --line-strong: #a3806f;
+  --ink: #2b1511;
+  --ink-muted: #6b483e;
+  --ink-inverse: #fff7ef;
+  --tomato: #d4321a;
+  --on-tomato: #ffffff;
+  --tomato-soft: #ffe2d8;
+  --tomato-text: #b0250f;
+  --tangerine: #ff8a1e;
+  --on-tangerine: #2b1511;
+  --tangerine-soft: #ffe8cf;
+  --tangerine-text: #984800;
+  --yolk: #ffc531;
+  --on-yolk: #2b1511;
+  --yolk-soft: #fff2c7;
+  --yolk-text: #755400;
+  --basil: #0b7a63;
+  --on-basil: #ffffff;
+  --basil-soft: #ddf3ec;
+  --basil-text: #086651;
+  --danger: #b0102e;
+  --on-danger: #ffffff;
+  --danger-soft: #ffe0e5;
+  --danger-text: #a30f2b;
+  --info: #2459c9;
+  --on-info: #ffffff;
+  --info-soft: #e3ecff;
+  --info-text: #1f4fb5;
+  --focus: #2459c9;
+  --scrim: rgba(43, 21, 17, 0.5);
+  --shadow-sm: 0 1px 2px rgba(43, 21, 17, 0.08);
+  --shadow-md: 0 6px 20px rgba(43, 21, 17, 0.12);
+  --shadow-lg: 0 18px 48px rgba(43, 21, 17, 0.2);
+  --shadow-sticker: 3px 3px 0 #2b1511;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+  --control-sm: 32px;
+  --control-md: 44px;
+  --control-lg: 52px;
+  --fab: 60px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --z-sticky: 10;
+  --z-fab: 20;
+  --z-overlay: 40;
+  --z-toast: 50;
+  --font-display: "Gabarito", "Figtree", system-ui, sans-serif;
+  --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  color-scheme: dark;
+    --surface: #1b1311;
+    --surface-raised: #261b18;
+    --surface-sunken: #140e0c;
+    --surface-inverse: #fff1e6;
+    --line: #3b2b27;
+    --line-strong: #8f736a;
+    --ink: #fff1e6;
+    --ink-muted: #cbb0a4;
+    --ink-inverse: #2b1511;
+    --tomato: #ff6a4a;
+    --on-tomato: #2b0b04;
+    --tomato-soft: #44201a;
+    --tomato-text: #ff9479;
+    --tangerine: #ff9e44;
+    --on-tangerine: #2b1511;
+    --tangerine-soft: #3e2814;
+    --tangerine-text: #ffb772;
+    --yolk: #ffce52;
+    --on-yolk: #2b1511;
+    --yolk-soft: #3b3015;
+    --yolk-text: #ffd873;
+    --basil: #4ccfae;
+    --on-basil: #062a22;
+    --basil-soft: #12322a;
+    --basil-text: #6fddc0;
+    --danger: #ff7d8f;
+    --on-danger: #2e0610;
+    --danger-soft: #431821;
+    --danger-text: #ff95a4;
+    --info: #8db2ff;
+    --on-info: #0d1a33;
+    --info-soft: #1c2945;
+    --info-text: #a6c3ff;
+    --focus: #8db2ff;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.6);
+    --shadow-sticker: 3px 3px 0 #000000;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #1b1311;
+  --surface-raised: #261b18;
+  --surface-sunken: #140e0c;
+  --surface-inverse: #fff1e6;
+  --line: #3b2b27;
+  --line-strong: #8f736a;
+  --ink: #fff1e6;
+  --ink-muted: #cbb0a4;
+  --ink-inverse: #2b1511;
+  --tomato: #ff6a4a;
+  --on-tomato: #2b0b04;
+  --tomato-soft: #44201a;
+  --tomato-text: #ff9479;
+  --tangerine: #ff9e44;
+  --on-tangerine: #2b1511;
+  --tangerine-soft: #3e2814;
+  --tangerine-text: #ffb772;
+  --yolk: #ffce52;
+  --on-yolk: #2b1511;
+  --yolk-soft: #3b3015;
+  --yolk-text: #ffd873;
+  --basil: #4ccfae;
+  --on-basil: #062a22;
+  --basil-soft: #12322a;
+  --basil-text: #6fddc0;
+  --danger: #ff7d8f;
+  --on-danger: #2e0610;
+  --danger-soft: #431821;
+  --danger-text: #ff95a4;
+  --info: #8db2ff;
+  --on-info: #0d1a33;
+  --info-soft: #1c2945;
+  --info-text: #a6c3ff;
+  --focus: #8db2ff;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.6);
+  --shadow-sticker: 3px 3px 0 #000000;
+}
+
+.display-xl { font-family: var(--font-display); font-size: 56px; line-height: 56px; font-weight: 800; letter-spacing: -0.035em; }
+.display-lg { font-family: var(--font-display); font-size: 40px; line-height: 44px; font-weight: 800; letter-spacing: -0.03em; }
+.title-lg { font-family: var(--font-display); font-size: 28px; line-height: 32px; font-weight: 800; letter-spacing: -0.025em; }
+.title-md { font-family: var(--font-display); font-size: 22px; line-height: 28px; font-weight: 750; letter-spacing: -0.02em; }
+.title-sm { font-family: var(--font-display); font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -0.015em; }
+.score { font-family: var(--font-display); font-size: 32px; line-height: 32px; font-weight: 800; letter-spacing: -0.03em; }
+.body-lg { font-family: var(--font-sans); font-size: 17px; line-height: 26px; font-weight: 400; }
+.body { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 400; }
+.body-strong { font-family: var(--font-sans); font-size: 15px; line-height: 22px; font-weight: 650; }
+.label { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 650; letter-spacing: 0.005em; }
+.caption { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 500; }
+.overline { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 750; letter-spacing: 0.08em; }

@@ -30,6 +30,7 @@ import {
   deleteMeal,
   imagePathFor,
   PHOTO_NEEDS_CONNECTION,
+  restoreMeal,
   subscribeToMeals,
   updateMeal,
   type MealsSnapshot,
@@ -40,6 +41,7 @@ const baseMeal: MealInput = {
   restaurantName: 'Luigi’s',
   dishName: 'Carbonara',
   rating: 4,
+  tweaks: [],
   notes: '',
 };
 
@@ -139,7 +141,8 @@ describe('addMeal', () => {
 
 describe('updateMeal', () => {
   it('saves the edited fields and keeps the photo when image is undefined', async () => {
-    await updateMeal(savedMeal, { ...baseMeal, dishName: 'Cacio e Pepe', price: 21, image: undefined }, 'user-1');
+    const tweaks = [{ kind: 'remove' as const, text: 'No onions' }];
+    await updateMeal(savedMeal, { ...baseMeal, dishName: 'Cacio e Pepe', price: 21, verdict: 'again', tweaks, image: undefined }, 'user-1');
 
     expect(firestore.updateDoc).toHaveBeenCalledWith({ id: 'meal-9' }, {
       restaurantName: 'Luigi’s',
@@ -147,14 +150,17 @@ describe('updateMeal', () => {
       rating: 4,
       notes: '',
       price: 21,
+      verdict: 'again',
+      tweaks,
     });
     expect(storage.uploadBytes).not.toHaveBeenCalled();
     expect(storage.deleteObject).not.toHaveBeenCalled();
   });
 
-  it('removes the price field when the price is cleared', async () => {
-    await updateMeal(savedMeal, { ...baseMeal, price: undefined }, 'user-1');
+  it('removes the price and verdict fields when they are cleared', async () => {
+    await updateMeal({ ...savedMeal, verdict: 'maybe' }, { ...baseMeal, price: undefined, verdict: undefined }, 'user-1');
     expect(firestore.updateDoc.mock.calls[0][1].price).toBe(DELETE_FIELD);
+    expect(firestore.updateDoc.mock.calls[0][1].verdict).toBe(DELETE_FIELD);
   });
 
   it('uploads a replacement photo to a new path, then deletes the old one', async () => {
@@ -264,5 +270,23 @@ describe('deleteMeal', () => {
   it('still succeeds if the photo is already gone', async () => {
     storage.deleteObject.mockRejectedValue(new Error('object-not-found'));
     await expect(deleteMeal(savedMeal)).resolves.toBeUndefined();
+  });
+
+  it('can keep the photo so the delete can be undone', async () => {
+    await deleteMeal(savedMeal, { keepPhoto: true });
+    expect(firestore.deleteDoc).toHaveBeenCalledWith({ id: 'meal-9' });
+    expect(storage.deleteObject).not.toHaveBeenCalled();
+  });
+});
+
+describe('restoreMeal', () => {
+  it('writes the meal back under its original id, with its owner', async () => {
+    await restoreMeal({ ...savedMeal, verdict: 'again', tweaks: [{ kind: 'add', text: 'Burrata' }] }, 'user-1');
+
+    expect(firestore.setDoc).toHaveBeenCalledWith(
+      { id: 'meal-9' },
+      expect.objectContaining({ userId: 'user-1', dishName: 'Carbonara', verdict: 'again', imagePath: savedMeal.imagePath }),
+    );
+    expect(firestore.setDoc.mock.calls[0][1]).not.toHaveProperty('id');
   });
 });

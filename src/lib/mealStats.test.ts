@@ -21,84 +21,57 @@ const meal = (overrides: Partial<Meal>): Meal => ({
 describe('computeStats', () => {
   it('handles no meals', () => {
     const stats = computeStats([], NOW);
-    expect(stats).toMatchObject({
-      totalMeals: 0,
-      restaurantCount: 0,
-      totalSpent: null,
-      averageRating: null,
-      topRestaurants: [],
-      topDishes: [],
-    });
+    expect(stats).toMatchObject({ totalLogs: 0, totalDishes: 0, placeCount: 0, totalSpent: null, averageRating: null, toOrderAgain: 0, topPlaces: [], topDishes: [] });
     expect(stats.monthly).toHaveLength(12);
     expect(stats.monthly.every((m) => m.count === 0)).toBe(true);
   });
 
-  it('totals prices (including $0) and ignores unpriced meals', () => {
-    const stats = computeStats([meal({ price: 20 }), meal({ price: 0 }), meal({ price: 12.5 }), meal({})], NOW);
-    expect(stats.totalSpent).toBe(32.5);
+  it('counts logs and distinct dishes separately', () => {
+    const stats = computeStats([meal({}), meal({}), meal({ dishName: 'Cacio e pepe' })], NOW);
+    expect(stats.totalLogs).toBe(3);
+    expect(stats.totalDishes).toBe(2);
+    expect(stats.placeCount).toBe(1);
   });
 
-  it('averages ratings, treating 0 as not rated', () => {
-    const stats = computeStats([meal({ rating: 5 }), meal({ rating: 4 }), meal({ rating: 0 })], NOW);
-    expect(stats.averageRating).toBe(4.5);
-    expect(computeStats([meal({ rating: 0 })], NOW).averageRating).toBeNull();
+  it('totals prices (including $0) and averages ratings, treating 0 as not rated', () => {
+    const stats = computeStats([meal({ price: 20, rating: 5 }), meal({ price: 0, rating: 4 }), meal({ price: 12.5, rating: 0 }), meal({})], NOW);
+    expect(stats.totalSpent).toBe(32.5);
+    expect(stats.averageRating).toBe(4);
   });
 
   it('counts the last 12 months, oldest first, ending this month', () => {
+    const stats = computeStats([meal({ date: at(2026, 11, 2) }), meal({ date: at(2026, 11, 17) }), meal({ date: at(2025, 12, 31) }), meal({ date: at(2025, 11, 30) })], NOW);
+    expect(stats.monthly[0]).toMatchObject({ key: '2025-12', label: 'Dec', longLabel: 'December 2025', count: 1 });
+    expect(stats.monthly[11]).toMatchObject({ key: '2026-11', label: 'Nov', count: 2 });
+  });
+
+  it('ranks places by visits with dish counts, never an averaged rating', () => {
     const stats = computeStats(
       [
-        meal({ date: at(2026, 11, 2) }),
-        meal({ date: at(2026, 11, 17) }),
-        meal({ date: at(2025, 12, 31) }),
-        meal({ date: at(2025, 11, 30) }), // 13 months ago: outside the window
+        meal({ restaurantName: 'Thai Palace', dishName: 'Pad thai', verdict: 'again', price: 15, date: at(2026, 10, 1) }),
+        meal({ restaurantName: 'Thai Palace', dishName: 'Curry', price: 10, date: at(2026, 10, 8) }),
+        meal({ restaurantName: 'Luigi’s', dishName: 'Carbonara', date: at(2026, 9, 1) }),
       ],
       NOW,
     );
-    expect(stats.monthly.map((m) => m.key)).toEqual([
-      '2025-12', '2026-01', '2026-02', '2026-03', '2026-04', '2026-05',
-      '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11',
+    expect(stats.topPlaces).toEqual([
+      { name: 'Thai Palace', visits: 2, dishes: 2, toOrderAgain: 1, spent: 25 },
+      { name: 'Luigi’s', visits: 1, dishes: 1, toOrderAgain: 0, spent: null },
     ]);
-    expect(stats.monthly[0]).toMatchObject({ label: 'Dec', longLabel: 'December 2025', count: 1 });
-    expect(stats.monthly[11]).toMatchObject({ label: 'Nov', count: 2 });
-    expect(stats.totalMeals).toBe(4);
+    expect(stats.topPlaces[0]).not.toHaveProperty('averageRating');
   });
 
-  it('ranks restaurants by visits, then average rating', () => {
+  it('lists favorite dishes by their own average rating, then times ordered', () => {
     const stats = computeStats(
       [
-        meal({ restaurantName: 'Thai Palace', rating: 4, price: 15 }),
-        meal({ restaurantName: 'Thai Palace', rating: 2, price: 10 }),
-        meal({ restaurantName: 'Thai Palace', rating: 0 }),
-        meal({ restaurantName: 'Luigi’s', rating: 5 }),
-        meal({ restaurantName: 'Taco Stand', rating: 3 }),
+        meal({ dishName: 'Twice five', rating: 5 }),
+        meal({ dishName: 'Twice five', rating: 5 }),
+        meal({ dishName: 'Once five', rating: 5 }),
+        meal({ dishName: 'Four', rating: 4 }),
+        meal({ dishName: 'Unrated', rating: 0 }),
       ],
       NOW,
     );
-    expect(stats.restaurantCount).toBe(3);
-    expect(stats.topRestaurants).toEqual([
-      { name: 'Thai Palace', visits: 3, averageRating: 3, spent: 25 },
-      { name: 'Luigi’s', visits: 1, averageRating: 5, spent: null },
-      { name: 'Taco Stand', visits: 1, averageRating: 3, spent: null },
-    ]);
-  });
-
-  it('keeps at most 5 restaurants and 5 dishes', () => {
-    const meals = Array.from({ length: 8 }, (_, i) => meal({ restaurantName: `Place ${i}`, rating: 4 }));
-    const stats = computeStats(meals, NOW);
-    expect(stats.topRestaurants).toHaveLength(5);
-    expect(stats.topDishes).toHaveLength(5);
-  });
-
-  it('lists top dishes by rating, newest first on ties, skipping unrated', () => {
-    const stats = computeStats(
-      [
-        meal({ dishName: 'Older five', rating: 5, date: at(2026, 3) }),
-        meal({ dishName: 'Four', rating: 4, date: at(2026, 10) }),
-        meal({ dishName: 'Newer five', rating: 5, date: at(2026, 9) }),
-        meal({ dishName: 'Unrated', rating: 0, date: at(2026, 11) }),
-      ],
-      NOW,
-    );
-    expect(stats.topDishes.map((m) => m.dishName)).toEqual(['Newer five', 'Older five', 'Four']);
+    expect(stats.topDishes.map((d) => d.name)).toEqual(['Twice five', 'Once five', 'Four']);
   });
 });

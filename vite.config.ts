@@ -1,24 +1,22 @@
 import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
     VitePWA({
       // Ask before switching to a new version, so a reload never wipes a half-filled form.
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icon.svg'],
       manifest: {
-        name: 'Meal Tracker',
-        short_name: 'Meals',
-        description: 'Track and rate your restaurant meals.',
-        theme_color: '#4f46e5',
-        background_color: '#f9fafb',
+        name: 'Dishlist',
+        short_name: 'Dishlist',
+        description: 'Rate the dish, not the restaurant. Remember what to order next time, and how.',
+        theme_color: '#d4321a',
+        background_color: '#fff7ef',
         display: 'standalone',
         start_url: '/',
         icons: [

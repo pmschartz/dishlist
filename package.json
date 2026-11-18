@@ -13,11 +13,11 @@
     "test:watch": "vitest",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-meal-tracker \"vitest run --config vitest.rules.config.ts\"",
     "preview": "vite preview",
-    "generate-icons": "pwa-assets-generator"
+    "generate-icons": "pwa-assets-generator",
+    "generate-tokens": "node scripts/generate-tokens.mjs"
   },
   "dependencies": {
     "firebase": "^13.4.0",
-    "lucide-react": "^1.75.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "workbox-window": "^7.4.1"
@@ -25,7 +25,6 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@firebase/rules-unit-testing": "^6.0.0",
-    "@tailwindcss/vite": "^4.3.5",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.12",
@@ -40,7 +39,6 @@
     "firebase-tools": "^15.36.0",
     "globals": "^17.14.0",
     "jsdom": "^31.0.1",
-    "tailwindcss": "^4.3.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.73.0",
     "vite": "^8.3.8",
