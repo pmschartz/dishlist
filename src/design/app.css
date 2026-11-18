@@ -76,7 +76,7 @@ img { max-width: 100%; }
 .app-visit-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .app-visit-head .dl-iconbtn { margin: -8px -8px -8px 0; }
 .app-sticky-action {
-  position: sticky; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 1;
+  position: sticky; bottom: calc(73px + env(safe-area-inset-bottom)); z-index: 1;
   margin: 0 calc(-1 * var(--space-4)); padding: var(--space-6) var(--space-4) var(--space-3);
   background: linear-gradient(to bottom, transparent, var(--surface) var(--space-6));
 }

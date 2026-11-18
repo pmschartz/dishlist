@@ -45,7 +45,7 @@ async function seedMeal(id: string, userId: string) {
 beforeAll(async () => {
   setLogLevel('error'); // denied requests are expected; keep the output readable
   env = await initializeTestEnvironment({
-    projectId: 'demo-meal-tracker',
+    projectId: 'demo-dishlist',
     firestore: { rules: readFileSync('firestore.rules', 'utf8') },
   });
 });

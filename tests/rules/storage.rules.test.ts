@@ -20,7 +20,7 @@ const storage = (uid?: string) =>
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
-    projectId: 'demo-meal-tracker',
+    projectId: 'demo-dishlist',
     storage: { rules: readFileSync('storage.rules', 'utf8') },
   });
 });
