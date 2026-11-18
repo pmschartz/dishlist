@@ -136,4 +136,21 @@ describe('MealsPage', () => {
     expect(service.subscribeToMeals).toHaveBeenCalledTimes(2);
     expect(cardTitles()).toEqual(['Pad Thai', 'Carbonara']);
   });
+
+  it('switches to stats and back', async () => {
+    render(<MealsPage user={user} onLogout={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByRole('tab', { name: 'Stats' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Meals logged').nextElementSibling).toHaveTextContent('2');
+    expect(screen.getByText('Total spent').nextElementSibling).toHaveTextContent('$18.00');
+    expect(screen.getByText('Average rating').nextElementSibling).toHaveTextContent('4.5 / 5');
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show as table' }));
+    expect(screen.getByRole('columnheader', { name: 'Month' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Meals' }));
+    expect(screen.getByRole('form', { name: 'Add a meal' })).toBeInTheDocument();
+  });
 });
