@@ -1,5 +1,5 @@
 {
-  "name": "meal-tracker",
+  "name": "dishlist",
   "private": true,
   "license": "MIT",
   "version": "0.0.0",
@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-meal-tracker \"vitest run --config vitest.rules.config.ts\"",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-dishlist \"vitest run --config vitest.rules.config.ts\"",
     "preview": "vite preview",
     "generate-icons": "pwa-assets-generator",
     "generate-tokens": "node scripts/generate-tokens.mjs"
