@@ -112,6 +112,27 @@ describe('AppShell', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('stays on the dish after an edit that renames it, instead of calling it deleted', async () => {
+    renderShell();
+    await userEvent.click(screen.getByRole('button', { name: 'Pad see ew at Lotus Thai Kitchen' }));
+    const before = window.location.hash;
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dish actions' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Edit dish' }));
+    const sheet = screen.getByRole('dialog', { name: 'Edit dish' });
+    await userEvent.clear(within(sheet).getByLabelText('Dish'));
+    await userEvent.type(within(sheet).getByLabelText('Dish'), 'Pad kee mao');
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Save changes' }));
+
+    // The live update arrives with the renamed meal.
+    act(() => push({ meals: meals.map((m) => (m.id === 'a' ? { ...m, dishName: 'Pad kee mao' } : m)), pendingIds: new Set() }));
+
+    expect(window.location.hash).toBe(`#/dishes/${encodeURIComponent('lotus thai kitchen|pad kee mao')}`);
+    expect(await screen.findByRole('heading', { name: 'Pad kee mao', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText("This dish isn't here anymore")).not.toBeInTheDocument();
+    expect(before).not.toBe(window.location.hash);
+  });
+
   it('logs a new dish from the tab bar button and offers to view it', async () => {
     renderShell();
 

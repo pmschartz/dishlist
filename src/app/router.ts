@@ -55,9 +55,16 @@ export function useRoute(): Route {
   return parseRoute(hash);
 }
 
-export function navigate(route: Route) {
+export function navigate(route: Route, { replace = false } = {}) {
   const hash = routeHash(route);
-  if (window.location.hash !== hash) window.location.hash = hash;
+  if (window.location.hash === hash) return void window.scrollTo({ top: 0 });
+  if (replace) {
+    // Swap the current history entry, so Back doesn't return to a page that no longer exists.
+    window.history.replaceState(window.history.state, '', hash);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  } else {
+    window.location.hash = hash;
+  }
   window.scrollTo({ top: 0 });
 }
 
