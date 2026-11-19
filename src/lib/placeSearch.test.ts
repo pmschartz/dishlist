@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { coarse, formatDistance, parsePhoton, searchPlaces } from './placeSearch';
+import { clearMatch, coarse, formatDistance, parsePhoton, placesAt, searchPlaces } from './placeSearch';
 
 const feature = (id: number, name: string, lon: number, lat: number, extra: Record<string, unknown> = {}) => ({
   geometry: { coordinates: [lon, lat] },
@@ -52,6 +52,32 @@ describe('searchPlaces', () => {
   it('throws when the service fails, so the field can fall back to typing', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
     await expect(searchPlaces('Nowhere', undefined)).rejects.toThrow('503');
+  });
+});
+
+describe('clearMatch', () => {
+  const at = (km: number) => ({ distanceKm: km });
+  it('picks the only restaurant close by, or one much closer than the next', () => {
+    expect(clearMatch([at(0.05), at(0.2)])).toEqual(at(0.05));
+    expect(clearMatch([at(0.01), at(0.06)])).toEqual(at(0.01));
+  });
+  it("gives up when it's a toss-up or nothing is close", () => {
+    expect(clearMatch([at(0.03), at(0.04)])).toBeUndefined();
+    expect(clearMatch([at(0.1)])).toBeUndefined();
+    expect(clearMatch([])).toBeUndefined();
+  });
+});
+
+describe('placesAt', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  it('looks up restaurants at a point rounded to about 10 m', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ features: [] }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await placesAt({ lat: 44.972481, lon: -93.368591 });
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.pathname).toBe('/reverse');
+    expect(url.searchParams.get('lat')).toBe('44.9725');
+    expect(url.searchParams.get('lon')).toBe('-93.3686');
   });
 });
 

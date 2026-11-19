@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 
 const resized = new Blob(['small'], { type: 'image/jpeg' });
 vi.mock('../lib/resizeImage', () => ({ resizeImage: vi.fn(async () => resized) }));
-vi.mock('../lib/photoDate', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../lib/photoDate')>()),
-  readPhotoDate: vi.fn(async () => undefined),
+vi.mock('../lib/photoInfo', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/photoInfo')>()),
+  readPhotoInfo: vi.fn(async () => ({})),
 }));
 
 const goldenValley = { id: 'osm:W2', address: '6920 Wayzata Boulevard, Golden Valley', lat: 44.97, lon: -93.37 };
@@ -14,10 +14,12 @@ vi.mock('../lib/placeSearch', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/placeSearch')>()),
   currentLocation: vi.fn(async () => ({ lat: 44.98, lon: -93.27 })),
   searchPlaces: vi.fn(async () => [{ name: 'Perkins', place: goldenValley, distanceKm: 8 }]),
+  placesAt: vi.fn(async () => []),
 }));
 
 import { LogDishSheet } from './LogDishSheet';
-import { readPhotoDate, toDayInput } from '../lib/photoDate';
+import { readPhotoInfo, toDayInput } from '../lib/photoInfo';
+import { placesAt } from '../lib/placeSearch';
 import { groupDishes } from '../lib/dishes';
 import type { Meal } from '../types';
 
@@ -166,7 +168,7 @@ describe('LogDishSheet', () => {
 
   it('uses the day your photo was taken', async () => {
     const taken = new Date(2026, 10, 12, 19, 4);
-    vi.mocked(readPhotoDate).mockResolvedValueOnce(taken);
+    vi.mocked(readPhotoInfo).mockResolvedValueOnce({ taken });
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
 
@@ -179,7 +181,7 @@ describe('LogDishSheet', () => {
   });
 
   it("offers the photo's date instead of overriding a day you already chose", async () => {
-    vi.mocked(readPhotoDate).mockResolvedValueOnce(new Date(2026, 10, 12, 19, 4));
+    vi.mocked(readPhotoInfo).mockResolvedValueOnce({ taken: new Date(2026, 10, 12, 19, 4) });
     render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={vi.fn()} onClose={vi.fn()} />);
     await userEvent.clear(field('When'));
     await userEvent.type(field('When'), '2026-11-10');
@@ -189,6 +191,52 @@ describe('LogDishSheet', () => {
     expect(field('When')).toHaveValue('2026-11-10');
     await userEvent.click(screen.getByRole('button', { name: 'Use that date' }));
     expect(field('When')).toHaveValue('2026-11-12');
+  });
+
+  it('puts the photo first in the form', () => {
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={dishes} onSave={vi.fn()} onClose={vi.fn()} />);
+    const photo = screen.getByRole('button', { name: 'Add photo' });
+    expect(photo.compareDocumentPosition(field('Restaurant')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('fills in the restaurant where your photo was taken when there is one clear match', async () => {
+    vi.mocked(readPhotoInfo).mockResolvedValueOnce({ at: { lat: 44.9725, lon: -93.3686 } });
+    vi.mocked(placesAt).mockResolvedValueOnce([
+      { name: 'Perkins', place: goldenValley, distanceKm: 0.02 },
+      { name: 'Taco Spot', place: { id: 'osm:N9', lat: 44.973, lon: -93.37 }, distanceKm: 0.12 },
+    ]);
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Pancakes' } }} dishes={dishes} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'p.jpg', { type: 'image/jpeg' }));
+    expect(await screen.findByDisplayValue('Perkins')).toBeInTheDocument();
+    expect(screen.getByText(/From your photo's location/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ restaurantName: 'Perkins', place: goldenValley }));
+  });
+
+  it('offers the restaurants at the photo when it is a toss-up, and never overwrites your choice', async () => {
+    const taco = { id: 'osm:N9', lat: 44.97251, lon: -93.36861 };
+    vi.mocked(readPhotoInfo).mockResolvedValueOnce({ at: { lat: 44.9725, lon: -93.3686 } });
+    vi.mocked(placesAt).mockResolvedValueOnce([
+      { name: 'Perkins', place: goldenValley, distanceKm: 0.03 },
+      { name: 'Taco Spot', place: taco, distanceKm: 0.04 },
+    ]);
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={dishes} onSave={vi.fn()} onClose={vi.fn()} />);
+
+    await userEvent.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'p.jpg', { type: 'image/jpeg' }));
+    await userEvent.click(field('Restaurant'));
+    expect(await screen.findByRole('option', { name: /Taco Spot/ })).toBeInTheDocument();
+    expect(screen.getByText('Where your photo was taken')).toBeInTheDocument();
+    expect(field('Restaurant')).toHaveValue('');
+
+    // A second photo after you've typed a name leaves it alone.
+    await userEvent.type(field('Restaurant'), 'Bao Down');
+    vi.mocked(readPhotoInfo).mockResolvedValueOnce({ at: { lat: 44.9725, lon: -93.3686 } });
+    vi.mocked(placesAt).mockResolvedValueOnce([{ name: 'Perkins', place: goldenValley, distanceKm: 0.01 }]);
+    await userEvent.upload(screen.getByLabelText('Choose a photo'), new File(['y'], 'q.jpg', { type: 'image/jpeg' }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(field('Restaurant')).toHaveValue('Bao Down');
   });
 
   it('rejects a price that is not a number', async () => {
