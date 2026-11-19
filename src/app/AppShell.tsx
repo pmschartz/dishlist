@@ -181,8 +181,10 @@ export function AppShell({ user, onLogout }: AppShellProps) {
           firstName={firstName}
           dishes={dishes}
           placeCount={places.length}
+          places={places}
           pendingKeys={pendingKeys}
           onOpenDish={openDish}
+          onOpenPlace={openPlace}
           onSeeAll={() => navigate({ name: 'dishes' })}
           onLog={() => openLog()}
         />

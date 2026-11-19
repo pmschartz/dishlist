@@ -136,3 +136,4 @@ img { max-width: 100%; }
 .app-place-distance { flex: none; }
 .app-place-status { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-2) var(--space-3); }
 .app-place-address { display: flex; align-items: center; gap: var(--space-1); margin: 0; }
+.app-nearby-ask { display: flex; }

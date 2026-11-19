@@ -111,6 +111,38 @@ export async function searchPlaces(query: string, near: LatLon | undefined, sign
   return results;
 }
 
+const REVERSE_URL = 'https://photon.komoot.io/reverse';
+
+/**
+ * Restaurants right at a point (where a photo was taken), nearest first. The point is
+ * rounded to about 10 m: precise enough to tell neighbors apart, not your exact spot.
+ */
+export async function placesAt(point: LatLon, signal?: AbortSignal, radiusKm = 0.15): Promise<PlaceSuggestion[]> {
+  const at = { lat: Math.round(point.lat * 1e4) / 1e4, lon: Math.round(point.lon * 1e4) / 1e4 };
+  const cacheKey = `@${at.lat},${at.lon},${radiusKm}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  const params = new URLSearchParams({ lat: String(at.lat), lon: String(at.lon), radius: String(radiusKm), limit: '6', lang: 'en' });
+  for (const tag of FOOD_TAGS) params.append('osm_tag', tag);
+  const res = await fetch(`${REVERSE_URL}?${params}`, { signal });
+  if (!res.ok) throw new Error(`Place lookup failed (${res.status})`);
+  const results = parsePhoton(await res.json(), at);
+  cache.set(cacheKey, results);
+  return results;
+}
+
+/**
+ * The one restaurant a photo was clearly taken at: the only one close by, or one much
+ * closer than the next. Undefined when it's a toss-up (a food court, a busy street).
+ */
+export function clearMatch<T extends { distanceKm?: number }>(candidates: T[], withinKm = 0.075): T | undefined {
+  const close = candidates.filter((c) => (c.distanceKm ?? Infinity) <= withinKm);
+  if (close.length === 1) return close[0];
+  if (close.length > 1 && close[0].distanceKm! <= 0.04 && close[1].distanceKm! >= close[0].distanceKm! * 2) return close[0];
+  return undefined;
+}
+
 /**
  * Where you are, roughly. Resolves undefined if location is unavailable or you said no;
  * a few minutes' old fix is fine for finding the nearest restaurant.

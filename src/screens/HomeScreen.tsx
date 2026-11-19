@@ -1,5 +1,6 @@
 import { AppBar, Button, DishCard, EmptyState, Skeleton } from '../ui';
-import { usuals, type Dish } from '../lib/dishes';
+import { usuals, type Dish, type Place } from '../lib/dishes';
+import { NearbyPlaces } from './NearbyPlaces';
 import { dishFootnote, greeting, plural } from '../lib/format';
 
 interface HomeScreenProps {
@@ -7,13 +8,16 @@ interface HomeScreenProps {
   /** null while loading. */
   dishes: Dish[] | null;
   placeCount: number;
+  /** Places you've logged; the ones with a saved location can show as "Near you". */
+  places?: Place[];
+  onOpenPlace?: (place: Place) => void;
   pendingKeys: Set<string>;
   onOpenDish: (dish: Dish) => void;
   onSeeAll: () => void;
   onLog: () => void;
 }
 
-export function HomeScreen({ firstName, dishes, placeCount, pendingKeys, onOpenDish, onSeeAll, onLog }: HomeScreenProps) {
+export function HomeScreen({ firstName, dishes, placeCount, places = [], pendingKeys, onOpenDish, onOpenPlace, onSeeAll, onLog }: HomeScreenProps) {
   const eyebrow = firstName ? `${greeting()}, ${firstName}` : greeting();
   const subtitle = dishes?.length ? `${plural(dishes.length, 'dish', 'dishes')} at ${plural(placeCount, 'place')}` : undefined;
 
@@ -62,6 +66,8 @@ export function HomeScreen({ firstName, dishes, placeCount, pendingKeys, onOpenD
   return (
     <>
       <AppBar variant="large" eyebrow={eyebrow} title="Your dishlist" subtitle={subtitle} />
+
+      {onOpenPlace ? <NearbyPlaces places={places} onOpenPlace={onOpenPlace} /> : null}
 
       {favorites.length ? (
         <section className="app-section" aria-labelledby="usuals-heading">

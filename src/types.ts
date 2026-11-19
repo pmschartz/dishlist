@@ -52,6 +52,8 @@ export interface MealInput {
   tweaks: Tweak[];
   notes: string;
   price?: number;
+  /** When you had it (ISO 8601). Undefined when logging means right now. */
+  date?: string;
   /**
    * Photo change, already resized:
    * - a Blob uploads it (replacing any existing photo)

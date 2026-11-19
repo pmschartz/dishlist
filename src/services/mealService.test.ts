@@ -94,6 +94,13 @@ describe('addMeal', () => {
     expect(saved).toMatchObject({ dishName: 'Carbonara', userId: 'user-1', imageUrl: '' });
   });
 
+  it('saves the day you went, or now when none is given', async () => {
+    await addMeal({ ...baseMeal, date: '2026-11-12T18:00:00.000Z' }, 'user-1');
+    expect(firestore.setDoc.mock.calls[0][1].date).toBe('2026-11-12T18:00:00.000Z');
+    await addMeal(baseMeal, 'user-1');
+    expect(Date.now() - Date.parse(firestore.setDoc.mock.calls[1][1].date)).toBeLessThan(5000);
+  });
+
   it('keeps a price of 0', async () => {
     await addMeal({ ...baseMeal, price: 0 }, 'user-1');
     expect(firestore.setDoc.mock.calls[0][1]).toHaveProperty('price', 0);
@@ -152,6 +159,7 @@ describe('updateMeal', () => {
       price: 21,
       verdict: 'again',
       place: DELETE_FIELD,
+      date: '2026-01-01T00:00:00.000Z',
       tweaks,
     });
     expect(storage.uploadBytes).not.toHaveBeenCalled();

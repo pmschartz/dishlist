@@ -14,6 +14,9 @@ import {
   VerdictPicker,
 } from '../ui';
 import { resizeImage } from '../lib/resizeImage';
+import { dayInputToDate, readPhotoInfo, toDayInput } from '../lib/photoInfo';
+import { clearMatch, distanceKm, placesAt, type LatLon, type PlaceSuggestion } from '../lib/placeSearch';
+import { formatDate } from '../lib/format';
 import { placeKey, type Dish } from '../lib/dishes';
 import type { Meal, MealInput, PlaceRef, Tweak, TweakKind, Verdict } from '../types';
 import { RestaurantField, type KnownPlace } from './RestaurantField';
@@ -57,6 +60,20 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
   const [price, setPrice] = useState(editing?.price != null ? String(editing.price) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [photo, setPhoto] = useState<File | null>(null);
+  const today = toDayInput(new Date());
+  const [day, setDay] = useState(editing ? toDayInput(new Date(editing.date)) : today);
+  /** Where the day came from: untouched, read from the photo, or typed in. */
+  const [daySource, setDaySource] = useState<'default' | 'photo' | 'user'>('default');
+  /** The photo's own time, used as-is when the day came from it. */
+  const [photoTime, setPhotoTime] = useState<Date | null>(null);
+  /** A photo date we didn't apply because the day was already set, offered instead. */
+  const [photoDayOffer, setPhotoDayOffer] = useState<Date | null>(null);
+  /** Where the photo was taken, and the restaurants right there. */
+  const [photoAt, setPhotoAt] = useState<LatLon | undefined>();
+  const [photoCandidates, setPhotoCandidates] = useState<PlaceSuggestion[]>([]);
+  const [restaurantNote, setRestaurantNote] = useState<string | undefined>();
+  /** Set once you type or pick a restaurant, so a photo never overwrites your choice. */
+  const restaurantChosen = useRef(Boolean(editing || prefill?.restaurantName));
   const [removedSavedPhoto, setRemovedSavedPhoto] = useState(false);
   const [adding, setAdding] = useState<{ kind: TweakKind; text: string } | null>(null);
   const [filledFrom, setFilledFrom] = useState<string | null>(null);
@@ -94,6 +111,7 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
   const dishError = showErrors && !dishName.trim() ? 'Name the dish so you can find it later.' : undefined;
   const restaurantError = showErrors && !restaurantName.trim() ? 'Pick a restaurant so we can file this dish.' : undefined;
   const priceNumber = price.trim() === '' ? undefined : Number(price);
+  const dayError = showErrors && (!dayInputToDate(day) ? 'Pick the day you went.' : day > today ? "That's in the future. Pick the day you went." : undefined);
   const priceError = showErrors && priceNumber !== undefined && (!Number.isFinite(priceNumber) || priceNumber < 0) ? 'Enter a price like 18 or 18.50.' : undefined;
 
   /** Typing a dish you've had before fills in how you ordered it last time. */
@@ -106,6 +124,58 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
     setFilledFrom(known.name);
   };
 
+  /** Fill the restaurant from the photo's location, unless you already chose one. */
+  const fillRestaurant = (name: string, at: PlaceRef | undefined) => {
+    if (restaurantChosen.current) return;
+    setRestaurantName(name);
+    setPlace(at);
+    setRestaurantNote("From your photo's location");
+    fillFromLastTime(dishName, name, at);
+  };
+
+  /** Where the photo was taken: center the search there, and fill the restaurant when it's clear. */
+  const applyPhotoLocation = async (at: LatLon) => {
+    setPhotoAt(at);
+    if (restaurantChosen.current) return;
+    // A place you've logged within 100 m is almost certainly it.
+    const yours = knownPlaces
+      .flatMap((k) => (k.place ? [{ ...k, km: distanceKm(at, k.place) }] : []))
+      .sort((a, b) => a.km - b.km)[0];
+    if (yours && yours.km <= 0.1) return fillRestaurant(yours.name, yours.place);
+    if (!navigator.onLine) return;
+    try {
+      const found = await placesAt(at);
+      setPhotoCandidates(found);
+      const match = clearMatch(found);
+      if (match) fillRestaurant(match.name, match.place);
+    } catch (err) {
+      console.warn('Photo place lookup failed:', err);
+    }
+  };
+
+  /** A new photo: use when and where it was taken, unless you already chose those. */
+  const applyPhoto = async (file: File) => {
+    const { taken, at } = await readPhotoInfo(file);
+    if (at) void applyPhotoLocation(at);
+    if (!taken || taken > new Date()) return;
+    if (daySource === 'default' && !editing) {
+      setDay(toDayInput(taken));
+      setDaySource('photo');
+      setPhotoTime(taken);
+      setPhotoDayOffer(null);
+    } else if (toDayInput(taken) !== day) {
+      setPhotoDayOffer(taken);
+    }
+  };
+
+  /** The ISO date to save: now for today, the photo's own time, the saved time if unchanged, or noon that day. */
+  const dateToSave = (): string | undefined => {
+    if (daySource === 'photo' && photoTime && toDayInput(photoTime) === day) return photoTime.toISOString();
+    if (editing && toDayInput(new Date(editing.date)) === day) return editing.date;
+    if (!editing && day === today) return undefined;
+    return dayInputToDate(day)!.toISOString();
+  };
+
   const addTweak = () => {
     if (!adding?.text.trim()) return;
     setTweaks((prev) => [...prev, { kind: adding.kind, text: adding.text.trim() }]);
@@ -115,7 +185,7 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setShowErrors(true);
-    if (!dishName.trim() || !restaurantName.trim() || (priceNumber !== undefined && (!Number.isFinite(priceNumber) || priceNumber < 0))) return;
+    if (!dishName.trim() || !restaurantName.trim() || !dayInputToDate(day) || day > today || (priceNumber !== undefined && (!Number.isFinite(priceNumber) || priceNumber < 0))) return;
 
     setSaving(true);
     setError(null);
@@ -129,6 +199,7 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
         tweaks,
         notes: notes.trim(),
         price: priceNumber,
+        date: dateToSave(),
         image: photo ? await resizeImage(photo) : editing ? (removedSavedPhoto ? null : undefined) : null,
       });
     } catch (err) {
@@ -154,15 +225,59 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
           </Banner>
         ) : null}
 
+        <div className="app-sheet-section">
+          <span className="label">Photo</span>
+          <div className="app-photo-pick">
+            <DishPhoto src={shownPhoto || undefined} alt={dishName || 'Dish'} icon="camera" />
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="app-sr-only"
+              aria-label="Choose a photo"
+              tabIndex={-1}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setPhoto(file);
+                  void applyPhoto(file);
+                }
+                e.target.value = '';
+              }}
+            />
+            <Button variant="secondary" size="sm" iconLeft="camera" onClick={() => fileInput.current?.click()}>
+              {shownPhoto ? 'Change photo' : 'Add photo'}
+            </Button>
+            {shownPhoto ? (
+              <IconButton
+                icon="trash"
+                label="Remove photo"
+                size="sm"
+                onClick={() => {
+                  setPhoto(null);
+                  setPhotoAt(undefined);
+                  setPhotoCandidates([]);
+                  if (editing) setRemovedSavedPhoto(true);
+                }}
+              />
+            ) : null}
+          </div>
+        </div>
+
         <RestaurantField
           value={restaurantName}
           place={place}
           error={restaurantError}
           knownPlaces={knownPlaces}
           fallbackNear={fallbackNear}
+          photoNear={photoAt}
+          photoCandidates={photoCandidates}
+          note={restaurantNote}
           onChange={(name, picked) => {
+            restaurantChosen.current = Boolean(name.trim());
             setRestaurantName(name);
             setPlace(picked);
+            setRestaurantNote(undefined);
           }}
           onCommit={(name, picked) => fillFromLastTime(dishName, name, picked)}
         />
@@ -182,6 +297,40 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
             <option key={d} value={d} />
           ))}
         </datalist>
+
+        <TextField
+          label="When"
+          type="date"
+          max={today}
+          value={day}
+          error={dayError}
+          hint={
+            photoDayOffer ? (
+              <span className="app-row" style={{ gap: 'var(--space-2)', alignItems: 'center' }}>
+                Your photo is from {formatDate(photoDayOffer.toISOString())}.
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setDay(toDayInput(photoDayOffer));
+                    setDaySource('photo');
+                    setPhotoTime(photoDayOffer);
+                    setPhotoDayOffer(null);
+                  }}
+                >
+                  Use that date
+                </Button>
+              </span>
+            ) : daySource === 'photo' ? (
+              'From your photo. Change it if that\'s not right.'
+            ) : undefined
+          }
+          onChange={(e) => {
+            setDay(e.target.value);
+            setDaySource('user');
+            setPhotoDayOffer(null);
+          }}
+        />
 
         <div className="app-sheet-section">
           <span className="label">How good was it?</span>
@@ -240,40 +389,6 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
               </Button>
             </div>
           ) : null}
-        </div>
-
-        <div className="app-sheet-section">
-          <span className="label">Photo</span>
-          <div className="app-photo-pick">
-            <DishPhoto src={shownPhoto || undefined} alt={dishName || 'Dish'} icon="camera" />
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/*"
-              className="app-sr-only"
-              aria-label="Choose a photo"
-              tabIndex={-1}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setPhoto(file);
-                e.target.value = '';
-              }}
-            />
-            <Button variant="secondary" size="sm" iconLeft="camera" onClick={() => fileInput.current?.click()}>
-              {shownPhoto ? 'Change photo' : 'Add photo'}
-            </Button>
-            {shownPhoto ? (
-              <IconButton
-                icon="trash"
-                label="Remove photo"
-                size="sm"
-                onClick={() => {
-                  setPhoto(null);
-                  if (editing) setRemovedSavedPhoto(true);
-                }}
-              />
-            ) : null}
-          </div>
         </div>
 
         <TextField
