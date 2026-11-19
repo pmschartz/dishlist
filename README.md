@@ -50,7 +50,7 @@ People who eat out often and keep going back to the places they like: regulars w
 | Concept | What it means |
 | --- | --- |
 | **Dish** | Everything you've logged for the same dish at the same place. It has its own average rating, times ordered, and history. |
-| **Plates** | Ratings are 1 to 5 plates: Nope, Meh, Fine, Good, Obsessed. The word always shows, so a rating never depends on counting icons. |
+| **Rating** | Each dish is rated 1 to 5: Nope, Meh, Fine, Good, Obsessed. The word always shows, so a rating never depends on color alone. |
 | **Verdict** | The one-glance answer to "would I order this again?": Order again, Maybe, or Skip it. Skipping is neutral, never red: disliking a dish is information, not an error. |
 | **Tweak** | How you want it next time, written the way you'd say it to a server: *No onions*, *Extra chili crisp*, *Rice for noodles*, *Sauce on the side*. |
 | **Place** | A restaurant summed up by its dishes: what to order again, what to skip, and every tweak for your next visit. |
@@ -62,7 +62,7 @@ People who eat out often and keep going back to the places they like: regulars w
 <td width="33%" valign="top"><img src="docs/screenshots/log-a-dish.png" alt="Log a dish sheet"></td>
 <td valign="top">
 
-**Log a dish.** The tomato button in the tab bar opens one sheet: restaurant, dish, plates, verdict, tweaks, photo, price, notes. Restaurant and dish names autocomplete from your history. Type a dish you've had before and its verdict and tweaks fill themselves in. Photos are resized on the phone before upload, and errors are written as fixes ("Pick a restaurant so we can file this dish").
+**Log a dish.** The tomato button in the tab bar opens one sheet: restaurant, dish, rating, verdict, tweaks, photo, price, notes. Restaurant and dish names autocomplete from your history. Type a dish you've had before and its verdict and tweaks fill themselves in. Photos are resized on the phone before upload, and errors are written as fixes ("Pick a restaurant so we can file this dish").
 
 </td>
 </tr>
@@ -163,8 +163,9 @@ This project is an experiment in building software with AI. I set the product di
 
 - **App:** React 19, TypeScript, Vite 8, vite-plugin-pwa (Workbox)
 - **Backend:** Firebase 13: Authentication (Google), Firestore with a persistent offline cache, Storage, Hosting
+- **Restaurant search:** [Photon](https://photon.komoot.io) (OpenStreetMap data, no API key). Your location is rounded to about 1 km before it's sent, and only while you're typing a restaurant name
 - **Design:** the Dishlist design system: generated CSS tokens, Gabarito and Figtree (SIL OFL), a custom icon set, no CSS framework
-- **Quality:** Vitest and Testing Library (77 tests), Firebase emulator tests for the security rules, ESLint with React Compiler rules, GitHub Actions CI, Dependabot
+- **Quality:** Vitest and Testing Library (90 tests), Firebase emulator tests for the security rules, ESLint with React Compiler rules, GitHub Actions CI, Dependabot
 
 ```
 src/

@@ -12,7 +12,7 @@ h1, h2, h3, p { margin: 0; }
 
 /* Shared focus ring: 2px solid `focus`, offset 2px */
 .dl-btn:focus-visible, .dl-iconbtn:focus-visible, .dl-fab:focus-visible, .dl-chip:focus-visible, .dl-seg-item:focus-visible,
-.dl-tab:focus-visible, .dl-tabbar-item:focus-visible, .dl-menu-item:focus-visible, .dl-rating-btn:focus-visible, .dl-verdictpick-item:focus-visible,
+.dl-tab:focus-visible, .dl-tabbar-item:focus-visible, .dl-menu-item:focus-visible, .dl-scale-step:focus-visible, .dl-verdictpick-item:focus-visible,
 .dl-dish-clickable:focus-visible, .dl-li-clickable:focus-visible, .dl-search-clear:focus-visible, .dl-tweak-x:focus-visible,
 .dl-toast-action:focus-visible, .dl-banner-action:focus-visible, .dl-input:focus-visible, .dl-search:focus-within {
   outline: 2px solid var(--focus); outline-offset: 2px;
@@ -130,15 +130,24 @@ h1, h2, h3, p { margin: 0; }
 
 /* ---------- Rating ---------- */
 .dl-rating { display: inline-flex; align-items: center; gap: var(--space-3); }
-.dl-rating-plates { display: inline-flex; gap: var(--space-1); }
-.dl-rating-btn { padding: 2px; border: 0; background: transparent; border-radius: var(--radius-pill); cursor: pointer; line-height: 0; }
-.dl-rating-btn:hover .dl-plate { transform: scale(1.08); }
-.dl-plate { position: relative; display: inline-block; box-sizing: border-box; border-radius: var(--radius-pill); background: var(--tomato-soft); border: 2px solid var(--tomato); transition: transform .12s, background-color .12s; vertical-align: middle; }
-.dl-plate-rim { position: absolute; inset: 22%; border-radius: var(--radius-pill); border: 2px solid var(--tomato); opacity: .55; }
-.dl-plate-on { background: var(--tomato); }
-.dl-plate-on .dl-plate-rim { border-color: var(--on-tomato); opacity: 1; }
+.dl-scale { display: inline-flex; gap: var(--space-1); }
+.dl-scale-step { display: inline-flex; align-items: center; justify-content: center; width: var(--control-md); height: var(--control-md); padding: 0;
+  border: 0; border-radius: var(--radius-sm); background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-muted); cursor: pointer; font-variant-numeric: tabular-nums;
+  transition: background-color .12s, color .12s; }
+.dl-scale-step:first-child { border-radius: var(--radius-md) var(--radius-sm) var(--radius-sm) var(--radius-md); }
+.dl-scale-step:last-child { border-radius: var(--radius-sm) var(--radius-md) var(--radius-md) var(--radius-sm); }
+.dl-scale-step:hover { color: var(--ink); }
+.dl-scale-preview { background: var(--tomato-soft); color: var(--tomato-text); box-shadow: none; }
+.dl-scale-on { background: var(--tomato); color: var(--on-tomato); box-shadow: none; }
+.dl-scale-on:hover { color: var(--on-tomato); }
+.dl-rating-sm .dl-scale-step { width: var(--control-sm); height: var(--control-sm); }
 .dl-rating-label { color: var(--ink); min-width: 4.5em; }
 .dl-rating-empty { color: var(--ink-muted); }
+.dl-meter { display: inline-flex; gap: 3px; }
+.dl-meter-bar { width: 14px; height: 6px; border-radius: var(--radius-pill); background: var(--line); }
+.dl-meter-on { background: var(--tomato); }
+.dl-rating-ro { gap: var(--space-2); }
+.dl-rating-ro .dl-rating-label { min-width: 0; }
 
 .dl-score { display: inline-flex; align-items: baseline; justify-content: center; gap: 1px; flex: none; border-radius: var(--radius-pill); background: var(--tomato); color: var(--on-tomato); }
 .dl-score-sm { min-width: 40px; height: 26px; padding: 0 var(--space-2); box-sizing: border-box; align-items: center; }
@@ -290,7 +299,7 @@ h1, h2, h3, p { margin: 0; }
 .dl-spinner { display: inline-block; box-sizing: border-box; border-radius: var(--radius-pill); border: 3px solid var(--tomato-soft); border-top-color: var(--tomato); animation: dl-spin .8s linear infinite; flex: none; }
 .dl-spinner-current { border-color: currentColor; border-top-color: transparent; opacity: .9; }
 @keyframes dl-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .dl-skel, .dl-spinner { animation-duration: 3s; } .dl-btn, .dl-fab, .dl-plate, .dl-switch-thumb { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .dl-skel, .dl-spinner { animation-duration: 3s; } .dl-btn, .dl-fab, .dl-scale-step, .dl-switch-thumb { transition: none; } }
 
 /* ---------- Toast, Banner ---------- */
 .dl-toast { display: inline-flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); box-sizing: border-box; max-width: 420px;

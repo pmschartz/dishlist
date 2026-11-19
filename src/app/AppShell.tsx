@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { Banner, Dialog, TabBar, Toast, type IconName } from '../ui';
 import { addMeal, deleteMeal, removePhoto, restoreMeal, subscribeToMeals, updateMeal } from '../services/mealService';
-import { groupDishes, groupPlaces, placeKey, type Dish, type Place } from '../lib/dishes';
+import { groupDishes, groupPlaces, type Dish, type Place } from '../lib/dishes';
 import { NO_FILTERS, type DishFilters } from '../lib/filterDishes';
 import { useOnlineStatus } from '../lib/useOnlineStatus';
 import { clearOfflineData, reloadApp } from '../lib/offlineData';
@@ -83,7 +83,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
   const openDish = (dish: Dish) => navigate({ name: 'dish', key: dish.key });
-  const openPlace = (target: Place | Dish) => navigate({ name: 'place', key: 'restaurant' in target ? placeKey(target.restaurant) : target.key });
+  const openPlace = (target: Place | Dish) => navigate({ name: 'place', key: 'placeKey' in target ? target.placeKey : target.key });
   const openLog = (mode: LogSheetMode = { kind: 'new' }) => setSheet(mode);
 
   const handleSave = async (input: MealInput) => {
@@ -95,7 +95,8 @@ export function AppShell({ user, onLogout }: AppShellProps) {
     } else {
       const saved = await addMeal(input, user.uid);
       setSheet(null);
-      const key = groupDishes([saved])[0].key;
+      // Group with everything else, so a typed-in name lands on the same dish page as past visits.
+      const key = groupDishes([saved, ...(meals ?? [])]).find((d) => d.logs.some((m) => m.id === saved.id))!.key;
       showToast({
         message: `${saved.dishName} logged`,
         tone: 'brand',
@@ -192,7 +193,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             pendingIds={pendingIds}
             onBack={() => navigate({ name: 'dishes' })}
             onOpenPlace={openPlace}
-            onLogAgain={(d) => openLog({ kind: 'new', prefill: { dishName: d.name, restaurantName: d.restaurant, verdict: d.verdict, tweaks: d.tweaks } })}
+            onLogAgain={(d) => openLog({ kind: 'new', prefill: { dishName: d.name, restaurantName: d.restaurant, place: d.place, verdict: d.verdict, tweaks: d.tweaks } })}
             onEdit={(meal) => openLog({ kind: 'edit', meal })}
             onDeleteVisit={(meal) => {
               const last = (dish?.logs.length ?? 0) <= 1;
@@ -218,7 +219,7 @@ export function AppShell({ user, onLogout }: AppShellProps) {
             pendingKeys={pendingKeys}
             onBack={() => navigate({ name: 'places' })}
             onOpenDish={openDish}
-            onLogHere={(p) => openLog({ kind: 'new', prefill: { restaurantName: p.name } })}
+            onLogHere={(p) => openLog({ kind: 'new', prefill: { restaurantName: p.name, place: p.place } })}
           />
         );
       break;

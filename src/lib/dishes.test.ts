@@ -101,3 +101,39 @@ describe('usuals', () => {
     expect(usuals(dishes).map((d) => d.name)).toEqual(['Great']);
   });
 });
+
+describe('places picked from the search', () => {
+  const golden = { id: 'osm:W1', address: '6920 Wayzata Boulevard, Golden Valley', lat: 44.97, lon: -93.37 };
+  const roseville = { id: 'osm:W2', address: '1495 County Road B West, Roseville', lat: 45.0, lon: -93.16 };
+
+  it('keeps two locations with the same name apart', () => {
+    const dishes = groupDishes([
+      meal({ restaurantName: 'Perkins', dishName: 'Pancakes', place: golden }),
+      meal({ restaurantName: 'Perkins', dishName: 'Pancakes', place: roseville }),
+    ]);
+    expect(dishes).toHaveLength(2);
+    const places = groupPlaces(dishes);
+    expect(places.map((p) => p.key).sort()).toEqual(['osm:W1', 'osm:W2']);
+    expect(places.find((p) => p.key === 'osm:W1')!.place).toEqual(golden);
+  });
+
+  it('files typed-in visits with the one picked location of that name', () => {
+    const dishes = groupDishes([
+      meal({ restaurantName: 'perkins', dishName: 'Pancakes', date: '2026-01-01T19:00:00.000Z' }),
+      meal({ restaurantName: 'Perkins', dishName: 'Pancakes', place: golden }),
+    ]);
+    expect(dishes).toHaveLength(1);
+    expect(dishes[0].key).toBe(dishKey('osm:W1', 'Pancakes'));
+    expect(dishes[0].timesOrdered).toBe(2);
+    expect(dishes[0].place).toEqual(golden);
+  });
+
+  it('leaves typed-in visits on their own once there are several locations of that name', () => {
+    const dishes = groupDishes([
+      meal({ restaurantName: 'Perkins', dishName: 'Pancakes' }),
+      meal({ restaurantName: 'Perkins', dishName: 'Pancakes', place: golden }),
+      meal({ restaurantName: 'Perkins', dishName: 'Pancakes', place: roseville }),
+    ]);
+    expect(groupPlaces(dishes).map((p) => p.key).sort()).toEqual(['osm:W1', 'osm:W2', placeKey('Perkins')]);
+  });
+});

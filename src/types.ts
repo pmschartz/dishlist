@@ -9,12 +9,24 @@ export interface Tweak {
   text: string;
 }
 
+/** A specific restaurant location picked from the place search, so two Perkins stay apart. */
+export interface PlaceRef {
+  /** OpenStreetMap id, e.g. "osm:W231765901". */
+  id: string;
+  /** Short street address, e.g. "6920 Wayzata Boulevard, Golden Valley". */
+  address?: string;
+  lat: number;
+  lon: number;
+}
+
 /** One time you had a dish (a single Firestore document in `meals`). */
 export interface Meal {
   id: string;
   restaurantName: string;
+  /** Which location, when picked from the place search. Absent for typed-in names and older meals. */
+  place?: PlaceRef;
   dishName: string;
-  /** 1–5 plates; 0 = not rated. */
+  /** 1–5 (Nope, Meh, Fine, Good, Obsessed); 0 = not rated. */
   rating: number;
   verdict?: Verdict;
   /** "Next time" tweaks. */
@@ -32,6 +44,8 @@ export interface Meal {
 /** What the log/edit sheet hands over. */
 export interface MealInput {
   restaurantName: string;
+  /** Undefined means a typed-in name with no specific location (removes it when editing). */
+  place?: PlaceRef;
   dishName: string;
   rating: number;
   verdict?: Verdict;

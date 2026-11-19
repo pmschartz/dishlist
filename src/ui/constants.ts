@@ -6,7 +6,7 @@ export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-/** 1 Nope · 2 Meh · 3 Fine · 4 Good · 5 Obsessed. The plate, not the star, is the unit. */
+/** 1 Nope · 2 Meh · 3 Fine · 4 Good · 5 Obsessed. A numbered scale, never stars. */
 export const RATING_LABELS = ['', 'Nope', 'Meh', 'Fine', 'Good', 'Obsessed'];
 
 export const VERDICTS: Record<Verdict, { label: string; icon: IconName }> = {

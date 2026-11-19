@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AppBar, Button, DishCard, EmptyState, NoteCard, Tabs, VisitItem } from '../ui';
+import { AppBar, Button, DishCard, EmptyState, Icon, NoteCard, Tabs, VisitItem } from '../ui';
 import { dishFootnote, formatDate, plural } from '../lib/format';
 import type { Dish, Place } from '../lib/dishes';
 
@@ -45,6 +45,12 @@ export function PlaceScreen({ place, pendingKeys, onBack, onOpenDish, onLogHere 
 
       <div className="app-stack" style={{ gap: 'var(--space-1)' }}>
         <h1 className="title-lg">{place.name}</h1>
+        {place.place?.address ? (
+          <p className="body dl-muted app-place-address">
+            <Icon name="map-pin" size={16} />
+            {place.place.address}
+          </p>
+        ) : null}
         <p className="body dl-muted">
           {plural(place.dishes.length, 'dish', 'dishes')} · {plural(place.visits, 'visit')} · last {formatDate(place.lastDate)}
         </p>

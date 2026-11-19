@@ -13,7 +13,7 @@ export function PlacesScreen({ places, onOpenPlace, onLog }: PlacesScreenProps) 
   const [search, setSearch] = useState('');
   const words = search.toLowerCase().split(/\s+/).filter(Boolean);
   const shown = places.filter((p) => {
-    const text = [p.name, ...p.dishes.map((d) => d.name)].join(' ').toLowerCase();
+    const text = [p.name, p.place?.address ?? '', ...p.dishes.map((d) => d.name)].join(' ').toLowerCase();
     return words.every((w) => text.includes(w));
   });
 
@@ -46,7 +46,7 @@ export function PlacesScreen({ places, onOpenPlace, onLog }: PlacesScreenProps) 
                 <RestaurantCard
                   key={place.key}
                   name={place.name}
-                  subtitle={`Last visit ${formatDate(place.lastDate)}`}
+                  subtitle={[place.place?.address, `Last visit ${formatDate(place.lastDate)}`].filter(Boolean).join(' · ')}
                   visits={place.visits}
                   dishes={place.dishes.map((d) => ({ name: d.name, verdict: d.verdict, rating: d.rating }))}
                   onClick={() => onOpenPlace(place)}

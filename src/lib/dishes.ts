@@ -1,11 +1,15 @@
-import type { Meal, Tweak, Verdict } from '../types';
+import type { Meal, PlaceRef, Tweak, Verdict } from '../types';
 
 /** A dish = every time you logged the same dish at the same restaurant. */
 export interface Dish {
-  /** Stable id: normalized restaurant + dish name. */
+  /** Stable id: the place key + normalized dish name. */
   key: string;
   name: string;
   restaurant: string;
+  /** Which place this dish belongs to (see placeKeyFor). */
+  placeKey: string;
+  /** The picked location, if any log at this place has one. */
+  place?: PlaceRef;
   /** Newest first. */
   logs: Meal[];
   latest: Meal;
@@ -26,6 +30,8 @@ export interface Dish {
 export interface Place {
   key: string;
   name: string;
+  /** The picked location, when the restaurant came from the place search. */
+  place?: PlaceRef;
   /** Best first: order-again, then maybe, then the rest; higher rated first within each. */
   dishes: Dish[];
   /** Distinct days you logged something there. */
@@ -37,28 +43,59 @@ export interface Place {
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
-export const dishKey = (restaurant: string, dish: string) => `${normalize(restaurant)}|${normalize(dish)}`;
+/** Key for a restaurant typed in by name, with no picked location. */
 export const placeKey = (restaurant: string) => normalize(restaurant);
+/** Key for a dish; pass a place key from placeKeyFor, or a restaurant name for a typed-in place. */
+export const dishKey = (placeOrRestaurant: string, dish: string) =>
+  `${placeOrRestaurant.startsWith('osm:') ? placeOrRestaurant : normalize(placeOrRestaurant)}|${normalize(dish)}`;
+
+/**
+ * Which place a meal belongs to. A picked location keys by its id, so two Perkins stay apart.
+ * A typed-in name (or an older meal) joins the picked location with that name when there's
+ * exactly one, so past visits aren't split off; otherwise it keys by the name.
+ */
+export function placeKeyFor(meal: Pick<Meal, 'restaurantName' | 'place'>, soleIdByName: Map<string, string | null>): string {
+  if (meal.place?.id) return meal.place.id;
+  const name = placeKey(meal.restaurantName);
+  return soleIdByName.get(name) ?? name;
+}
+
+/** For each restaurant name, its picked location id if there's exactly one, or null if several. */
+export function soleIdsByName(meals: Pick<Meal, 'restaurantName' | 'place'>[]): Map<string, string | null> {
+  const ids = new Map<string, Set<string>>();
+  for (const meal of meals) {
+    if (!meal.place?.id) continue;
+    const name = placeKey(meal.restaurantName);
+    ids.set(name, (ids.get(name) ?? new Set()).add(meal.place.id));
+  }
+  return new Map([...ids].map(([name, set]) => [name, set.size === 1 ? [...set][0] : null]));
+}
 
 const average = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : null);
 const newestFirst = (a: Meal, b: Meal) => b.date.localeCompare(a.date);
 
 /** Group logs into dishes, newest-logged dish first. */
 export function groupDishes(meals: Meal[]): Dish[] {
-  const groups = new Map<string, Meal[]>();
+  const soleIds = soleIdsByName(meals);
+  const groups = new Map<string, { placeKey: string; meals: Meal[] }>();
   for (const meal of meals) {
-    const key = dishKey(meal.restaurantName, meal.dishName);
-    groups.set(key, [...(groups.get(key) ?? []), meal]);
+    const place = placeKeyFor(meal, soleIds);
+    const key = dishKey(place, meal.dishName);
+    const group = groups.get(key) ?? { placeKey: place, meals: [] };
+    group.meals.push(meal);
+    groups.set(key, group);
   }
   return [...groups.entries()]
     .map(([key, group]) => {
-      const logs = [...group].sort(newestFirst);
+      const logs = [...group.meals].sort(newestFirst);
       const latest = logs[0];
       return {
         key,
         // Display the most recent spelling.
         name: latest.dishName.trim(),
         restaurant: latest.restaurantName.trim(),
+        placeKey: group.placeKey,
+        place: logs.find((m) => m.place)?.place,
         logs,
         latest,
         verdict: logs.find((m) => m.verdict)?.verdict,
@@ -88,7 +125,7 @@ export function bestFirst(a: Dish, b: Dish) {
 export function groupPlaces(dishes: Dish[]): Place[] {
   const groups = new Map<string, Dish[]>();
   for (const dish of dishes) {
-    const key = placeKey(dish.restaurant);
+    const key = dish.placeKey;
     groups.set(key, [...(groups.get(key) ?? []), dish]);
   }
   return [...groups.entries()]
@@ -100,6 +137,7 @@ export function groupPlaces(dishes: Dish[]): Place[] {
       return {
         key,
         name: newest.restaurant,
+        place: newest.place ?? group.find((d) => d.place)?.place,
         dishes: sorted,
         visits: days.size,
         lastDate,
