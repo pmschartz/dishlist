@@ -86,11 +86,27 @@ export function AppShell({ user, onLogout }: AppShellProps) {
   const openPlace = (target: Place | Dish) => navigate({ name: 'place', key: 'placeKey' in target ? target.placeKey : target.key });
   const openLog = (mode: LogSheetMode = { kind: 'new' }) => setSheet(mode);
 
+  /**
+   * A dish's page is keyed by its restaurant (or picked location) and name, so an edit that
+   * changes either moves it to a new address. Follow it there instead of showing the old
+   * page as gone.
+   */
+  const followEditedMeal = (before: Meal, input: MealInput) => {
+    if (!meals || (route.name !== 'dish' && route.name !== 'place')) return;
+    const edited: Meal = { ...before, restaurantName: input.restaurantName.trim(), dishName: input.dishName.trim(), place: input.place };
+    const after = groupDishes(meals.map((m) => (m.id === before.id ? edited : m)));
+    const dish = after.find((d) => d.logs.some((m) => m.id === before.id));
+    if (!dish) return;
+    if (route.name === 'dish' && route.key !== dish.key) navigate({ name: 'dish', key: dish.key }, { replace: true });
+    if (route.name === 'place' && !after.some((d) => d.placeKey === route.key)) navigate({ name: 'place', key: dish.placeKey }, { replace: true });
+  };
+
   const handleSave = async (input: MealInput) => {
     if (!sheet) return;
     if (sheet.kind === 'edit') {
       await updateMeal(sheet.meal, input, user.uid);
       setSheet(null);
+      followEditedMeal(sheet.meal, input);
       showToast({ message: 'Changes saved', tone: 'success' });
     } else {
       const saved = await addMeal(input, user.uid);
