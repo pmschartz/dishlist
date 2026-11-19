@@ -3,9 +3,9 @@
 **Rate the dish, not the restaurant.** Dishlist remembers what you ordered, how good it was, whether you'd order it again, and exactly how you like it ("no onions, extra chili").
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Home: your usuals, with photos, plate ratings, verdicts and tweaks" width="260">
+  <img src="docs/screenshots/home.png" alt="Home: your usuals, with photos, ratings, verdicts and tweaks" width="260">
   <img src="docs/screenshots/dish.png" alt="A dish page: photo, 4.7 out of 5, Order again, and a Next time note" width="260">
-  <img src="docs/screenshots/log-a-dish.png" alt="The Log a dish sheet with plates, verdict tiles and tweaks" width="260">
+  <img src="docs/screenshots/log-a-dish.png" alt="The Log a dish sheet with a 1 to 5 rating, verdict tiles and tweaks" width="260">
 </p>
 
 A React + Firebase progressive web app: installable, works offline, light and dark themes, with its own design system.
@@ -62,7 +62,15 @@ People who eat out often and keep going back to the places they like: regulars w
 <td width="33%" valign="top"><img src="docs/screenshots/log-a-dish.png" alt="Log a dish sheet"></td>
 <td valign="top">
 
-**Log a dish.** The tomato button in the tab bar opens one sheet: restaurant, dish, rating, verdict, tweaks, photo, price, notes. Restaurant and dish names autocomplete from your history. Type a dish you've had before and its verdict and tweaks fill themselves in. Photos are resized on the phone before upload, and errors are written as fixes ("Pick a restaurant so we can file this dish").
+**Log a dish.** The tomato button in the tab bar opens one sheet: restaurant, dish, rating, verdict, tweaks, photo, price, notes. Dish names autocomplete from your history. Type a dish you've had before and its verdict and tweaks fill themselves in. Photos are resized on the phone before upload, and errors are written as fixes ("Pick a restaurant so we can file this dish").
+
+</td>
+</tr>
+<tr>
+<td valign="top"><img src="docs/screenshots/restaurant-suggestions.png" alt="Restaurant field suggesting your places and nearby Thai restaurants with distances"></td>
+<td valign="top">
+
+**Pick the right restaurant.** Start typing and the restaurant field suggests places you've logged first, then nearby restaurants from OpenStreetMap, nearest first, with their addresses. Picking one saves that exact location, so two branches of the same chain stay apart. Your location is rounded to about a kilometer before it's sent, and typing any name still works offline.
 
 </td>
 </tr>
@@ -149,6 +157,8 @@ This project is an experiment in building software with AI. I set the product di
 | [#6](https://github.com/pmschartz/dishlist/pull/6) | Editing, search and filters, and offline support with a live data subscription. |
 | [#7](https://github.com/pmschartz/dishlist/pull/7) | Installable PWA that opens offline, emulator tests for the security rules, a stats page, and a 64% smaller login bundle. |
 | [#10](https://github.com/pmschartz/dishlist/pull/10) | Redesigned the whole app around the Dishlist design system and its dish-first product ideas. |
+| [#11](https://github.com/pmschartz/dishlist/pull/11) | Got the repo ready to go public: a secret scan of the full history, this README, and screenshots. |
+| [#14](https://github.com/pmschartz/dishlist/pull/14) | Nearby restaurant suggestions from OpenStreetMap, with each meal tied to a specific location, and a clearer numbered 1–5 rating scale. |
 
 **The design system.** Before the redesign, I worked with Claude to create **Dishlist**, a design system covering brand voice, color and type tokens (light and dark), a custom icon set, logos, and about 40 components. Claude Code then ported it into this codebase: `src/design/` holds its tokens and styles, and `src/ui/` holds the components.
 
