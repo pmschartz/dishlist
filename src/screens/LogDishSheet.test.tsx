@@ -56,7 +56,7 @@ describe('LogDishSheet', () => {
 
     await userEvent.type(field('Restaurant'), '  Bao Down ');
     await userEvent.type(field('Dish'), 'Pork belly bao');
-    await userEvent.click(screen.getByRole('radio', { name: '4 plates, Good' }));
+    await userEvent.click(screen.getByRole('radio', { name: '4 out of 5, Good' }));
     await userEvent.click(screen.getByRole('radio', { name: 'Order again' }));
     await userEvent.click(screen.getByRole('button', { name: 'Add a tweak' }));
     await userEvent.click(screen.getByRole('radio', { name: 'Add' }));
@@ -165,7 +165,7 @@ describe('LogDishSheet', () => {
 
     expect(screen.getByRole('dialog', { name: 'Edit dish' })).toBeInTheDocument();
     expect(field('Price')).toHaveValue('16');
-    expect(screen.getByRole('radio', { name: '5 plates, Obsessed' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: '5 out of 5, Obsessed' })).toHaveAttribute('aria-checked', 'true');
 
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(onSave.mock.calls[0][0]).toMatchObject({ dishName: 'Pad see ew', price: 16, notes: 'Great', image: undefined });

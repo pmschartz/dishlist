@@ -26,7 +26,7 @@ export interface Meal {
   /** Which location, when picked from the place search. Absent for typed-in names and older meals. */
   place?: PlaceRef;
   dishName: string;
-  /** 1–5 plates; 0 = not rated. */
+  /** 1–5 (Nope, Meh, Fine, Good, Obsessed); 0 = not rated. */
   rating: number;
   verdict?: Verdict;
   /** "Next time" tweaks. */

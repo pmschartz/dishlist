@@ -11,15 +11,15 @@ describe('Dishlist components', () => {
     expect(screen.getByRole('img', { name: 'Not rated' })).toHaveTextContent('–');
   });
 
-  it('RatingInput always shows the word, so a rating never relies on counting plates', async () => {
+  it('RatingInput always shows the word, so a rating never relies on color alone', async () => {
     const onChange = vi.fn();
     const { rerender } = render(<RatingInput value={0} onValueChange={onChange} />);
     expect(screen.getByText('Tap to rate')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('radio', { name: '2 plates, Meh' }));
+    await userEvent.click(screen.getByRole('radio', { name: '2 out of 5, Meh' }));
     expect(onChange).toHaveBeenCalledWith(2);
 
     rerender(<RatingInput value={5} readOnly />);
-    expect(screen.getByRole('img', { name: '5 of 5 plates: Obsessed' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '5 out of 5, Obsessed' })).toBeInTheDocument();
     expect(screen.getByText('Obsessed')).toBeInTheDocument();
   });
 

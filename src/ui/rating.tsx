@@ -3,63 +3,71 @@ import { Icon } from './Icon';
 import { cx, RATING_LABELS, VERDICTS } from './constants';
 import type { Verdict as VerdictValue } from '../types';
 
-function Plate({ filled, size }: { filled: boolean; size: number }) {
-  return (
-    <span className={cx('dl-plate', filled && 'dl-plate-on')} style={{ width: size, height: size }} aria-hidden>
-      <span className="dl-plate-rim" />
-    </span>
-  );
-}
-
 interface RatingInputProps {
   /** 0 = unrated. */
   value: number;
   onValueChange?: (value: number) => void;
   size?: 'sm' | 'md';
+  /** Shows a compact five-bar meter instead of buttons, for lists and timelines. */
   readOnly?: boolean;
   showLabel?: boolean;
   label?: string;
   className?: string;
 }
 
+/** 1 to 5 as a numbered segmented scale, with the word for it alongside. */
 export function RatingInput({ value, onValueChange, size = 'md', readOnly, showLabel = true, label = 'Rate this dish', className }: RatingInputProps) {
   const [hovered, setHovered] = useState(0);
-  const px = size === 'sm' ? 22 : 34;
+  const sm = size === 'sm';
   const shown = readOnly ? value : hovered || value;
-  return (
-    <div className={cx('dl-rating', readOnly && 'dl-rating-ro', className)}>
-      <div
-        className="dl-rating-plates"
-        role={readOnly ? 'img' : 'radiogroup'}
-        aria-label={readOnly ? (value ? `${value} of 5 plates: ${RATING_LABELS[value]}` : 'Not rated') : label}
-        onMouseLeave={() => setHovered(0)}
+  const word = showLabel ? (
+    <span className={cx('dl-rating-label', sm ? 'caption' : 'label', !shown && 'dl-rating-empty')}>
+      {shown ? RATING_LABELS[shown] : readOnly ? 'Not rated' : 'Tap to rate'}
+    </span>
+  ) : null;
+
+  if (readOnly) {
+    return (
+      <span
+        className={cx('dl-rating', 'dl-rating-ro', sm && 'dl-rating-sm', className)}
+        role="img"
+        aria-label={value ? `${value} out of 5, ${RATING_LABELS[value]}` : 'Not rated'}
       >
-        {[1, 2, 3, 4, 5].map((n) =>
-          readOnly ? (
-            <span key={n}>
-              <Plate filled={n <= shown} size={px} />
-            </span>
-          ) : (
+        <span className="dl-meter" aria-hidden>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <span key={n} className={cx('dl-meter-bar', n <= value && 'dl-meter-on')} />
+          ))}
+        </span>
+        {word}
+      </span>
+    );
+  }
+
+  return (
+    <div className={cx('dl-rating', sm && 'dl-rating-sm', className)}>
+      <div className="dl-scale" role="radiogroup" aria-label={label} onMouseLeave={() => setHovered(0)}>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const on = n <= value;
+          const preview = !on && hovered > 0 && n <= hovered;
+          return (
             <button
               key={n}
               type="button"
               role="radio"
               aria-checked={value === n}
-              aria-label={`${n} plate${n > 1 ? 's' : ''}, ${RATING_LABELS[n]}`}
-              className="dl-rating-btn"
+              aria-label={`${n} out of 5, ${RATING_LABELS[n]}`}
+              className={cx('dl-scale-step', 'label', on && 'dl-scale-on', preview && 'dl-scale-preview', value === n && 'dl-scale-current')}
               onMouseEnter={() => setHovered(n)}
+              onFocus={() => setHovered(n)}
+              onBlur={() => setHovered(0)}
               onClick={() => onValueChange?.(n)}
             >
-              <Plate filled={n <= shown} size={px} />
+              {n}
             </button>
-          ),
-        )}
+          );
+        })}
       </div>
-      {showLabel ? (
-        <span className={cx('dl-rating-label', size === 'sm' ? 'caption' : 'label', !shown && 'dl-rating-empty')}>
-          {shown ? RATING_LABELS[shown] : readOnly ? 'Not rated' : 'Tap to rate'}
-        </span>
-      ) : null}
+      {word}
     </div>
   );
 }
