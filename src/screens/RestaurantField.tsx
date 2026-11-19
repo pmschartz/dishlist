@@ -38,6 +38,8 @@ export function RestaurantField({ value, place, onChange, onCommit, error, known
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [here, setHere] = useState<LatLon | undefined>();
+  /** True once we've asked and the browser gave no location (blocked, or unavailable). */
+  const [locationOff, setLocationOff] = useState(false);
   const askedForLocation = useRef(false);
   // The latest finished search, tagged with what it searched for, so stale results never show.
   const [result, setResult] = useState<{ key: string; items: PlaceSuggestion[]; failed: boolean } | null>(null);
@@ -49,7 +51,7 @@ export function RestaurantField({ value, place, onChange, onCommit, error, known
   const askForLocation = () => {
     if (askedForLocation.current) return;
     askedForLocation.current = true;
-    void currentLocation().then((loc) => loc && setHere(loc));
+    void currentLocation().then((loc) => (loc ? setHere(loc) : setLocationOff(true)));
   };
 
   const shouldSearch = open && query.length >= MIN_QUERY && online && pickedName !== value;
@@ -176,6 +178,13 @@ export function RestaurantField({ value, place, onChange, onCommit, error, known
             </div>
           </div>
         ))}
+        {!searching && online && locationOff && current && current.items.length > 0 ? (
+          <p className="app-place-status caption dl-muted">
+            {fallbackNear
+              ? "Your location is off, so these are sorted from the last place you logged. Add a city after the name to narrow it down."
+              : "Your location is off, so these may not be the closest. Add a city after the name, or allow location for this site."}
+          </p>
+        ) : null}
         {searching ? (
           <p className="app-place-status caption dl-muted" role="status">
             <Spinner size={14} tone="current" label="Searching" /> Searching nearby…

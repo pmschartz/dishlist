@@ -13,6 +13,7 @@ vi.mock('../lib/placeSearch', async (importOriginal) => ({
 }));
 
 import { LogDishSheet } from './LogDishSheet';
+import { currentLocation } from '../lib/placeSearch';
 import { groupDishes } from '../lib/dishes';
 import type { Meal } from '../types';
 
@@ -123,6 +124,15 @@ describe('LogDishSheet', () => {
     await userEvent.type(field('Dish'), 'Pancakes');
     await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ restaurantName: 'Perkins', place: goldenValley }));
+  });
+
+  it('says when location is off, so far-away results make sense', async () => {
+    vi.mocked(currentLocation).mockResolvedValueOnce(undefined);
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={dishes} onSave={vi.fn()} onClose={vi.fn()} />);
+
+    await userEvent.type(field('Restaurant'), 'Perk');
+    await screen.findByRole('option', { name: /Perkins/ });
+    expect(screen.getByText(/Your location is off, so these may not be the closest/)).toBeInTheDocument();
   });
 
   it('offers places you have logged before, and picks one with the keyboard', async () => {
