@@ -98,9 +98,10 @@ export async function updateMeal(meal: Meal, input: MealInput, userId: string): 
   const { image, ...fields } = input;
   const changes: Record<string, unknown> = {
     ...fields,
-    // Clearing the price or verdict removes the field rather than storing undefined.
+    // Clearing the price, verdict or place removes the field rather than storing undefined.
     price: fields.price ?? deleteField(),
     verdict: fields.verdict ?? deleteField(),
+    place: fields.place ?? deleteField(),
   };
 
   let replacedPhoto: string | undefined;

@@ -5,6 +5,13 @@ import userEvent from '@testing-library/user-event';
 const resized = new Blob(['small'], { type: 'image/jpeg' });
 vi.mock('../lib/resizeImage', () => ({ resizeImage: vi.fn(async () => resized) }));
 
+const goldenValley = { id: 'osm:W2', address: '6920 Wayzata Boulevard, Golden Valley', lat: 44.97, lon: -93.37 };
+vi.mock('../lib/placeSearch', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/placeSearch')>()),
+  currentLocation: vi.fn(async () => ({ lat: 44.98, lon: -93.27 })),
+  searchPlaces: vi.fn(async () => [{ name: 'Perkins', place: goldenValley, distanceKm: 8 }]),
+}));
+
 import { LogDishSheet } from './LogDishSheet';
 import { groupDishes } from '../lib/dishes';
 import type { Meal } from '../types';
@@ -99,6 +106,33 @@ describe('LogDishSheet', () => {
     expect(screen.getByText('Filled in from the last time you had Pad see ew.')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Order again' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByText('No onions')).toBeInTheDocument();
+  });
+
+  it('suggests nearby restaurants and saves the one you pick', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={dishes} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.type(field('Restaurant'), 'Perk');
+    const option = await screen.findByRole('option', { name: /Perkins/ });
+    expect(within(option).getByText('6920 Wayzata Boulevard, Golden Valley')).toBeInTheDocument();
+    expect(within(option).getByText('5.0 mi')).toBeInTheDocument();
+    await userEvent.click(option);
+
+    expect(field('Restaurant')).toHaveValue('Perkins');
+    expect(screen.getByText('6920 Wayzata Boulevard, Golden Valley')).toBeInTheDocument();
+    await userEvent.type(field('Dish'), 'Pancakes');
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ restaurantName: 'Perkins', place: goldenValley }));
+  });
+
+  it('offers places you have logged before, and picks one with the keyboard', async () => {
+    render(<LogDishSheet mode={{ kind: 'new' }} dishes={dishes} onSave={vi.fn()} onClose={vi.fn()} />);
+
+    await userEvent.type(field('Restaurant'), 'lot');
+    expect(await screen.findByRole('option', { name: /Lotus Thai Kitchen/ })).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(field('Restaurant')).toHaveValue('Lotus Thai Kitchen');
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
   it('rejects a price that is not a number', async () => {

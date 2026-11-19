@@ -163,8 +163,9 @@ This project is an experiment in building software with AI. I set the product di
 
 - **App:** React 19, TypeScript, Vite 8, vite-plugin-pwa (Workbox)
 - **Backend:** Firebase 13: Authentication (Google), Firestore with a persistent offline cache, Storage, Hosting
+- **Restaurant search:** [Photon](https://photon.komoot.io) (OpenStreetMap data, no API key). Your location is rounded to about 1 km before it's sent, and only while you're typing a restaurant name
 - **Design:** the Dishlist design system: generated CSS tokens, Gabarito and Figtree (SIL OFL), a custom icon set, no CSS framework
-- **Quality:** Vitest and Testing Library (77 tests), Firebase emulator tests for the security rules, ESLint with React Compiler rules, GitHub Actions CI, Dependabot
+- **Quality:** Vitest and Testing Library (90 tests), Firebase emulator tests for the security rules, ESLint with React Compiler rules, GitHub Actions CI, Dependabot
 
 ```
 src/

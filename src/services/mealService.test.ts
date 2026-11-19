@@ -151,10 +151,19 @@ describe('updateMeal', () => {
       notes: '',
       price: 21,
       verdict: 'again',
+      place: DELETE_FIELD,
       tweaks,
     });
     expect(storage.uploadBytes).not.toHaveBeenCalled();
     expect(storage.deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('saves a picked location, and removes it when the name is typed in instead', async () => {
+    const place = { id: 'osm:W1', address: '1 Main St, Golden Valley', lat: 44.97, lon: -93.37 };
+    await updateMeal(savedMeal, { ...baseMeal, place }, 'user-1');
+    expect(firestore.updateDoc.mock.calls[0][1].place).toEqual(place);
+    await updateMeal({ ...savedMeal, place }, { ...baseMeal, place: undefined }, 'user-1');
+    expect(firestore.updateDoc.mock.calls[1][1].place).toBe(DELETE_FIELD);
   });
 
   it('removes the price and verdict fields when they are cleared', async () => {
