@@ -14,6 +14,8 @@ import {
   VerdictPicker,
 } from '../ui';
 import { resizeImage } from '../lib/resizeImage';
+import { dayInputToDate, readPhotoDate, toDayInput } from '../lib/photoDate';
+import { formatDate } from '../lib/format';
 import { placeKey, type Dish } from '../lib/dishes';
 import type { Meal, MealInput, PlaceRef, Tweak, TweakKind, Verdict } from '../types';
 import { RestaurantField, type KnownPlace } from './RestaurantField';
@@ -57,6 +59,14 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
   const [price, setPrice] = useState(editing?.price != null ? String(editing.price) : '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [photo, setPhoto] = useState<File | null>(null);
+  const today = toDayInput(new Date());
+  const [day, setDay] = useState(editing ? toDayInput(new Date(editing.date)) : today);
+  /** Where the day came from: untouched, read from the photo, or typed in. */
+  const [daySource, setDaySource] = useState<'default' | 'photo' | 'user'>('default');
+  /** The photo's own time, used as-is when the day came from it. */
+  const [photoTime, setPhotoTime] = useState<Date | null>(null);
+  /** A photo date we didn't apply because the day was already set, offered instead. */
+  const [photoDayOffer, setPhotoDayOffer] = useState<Date | null>(null);
   const [removedSavedPhoto, setRemovedSavedPhoto] = useState(false);
   const [adding, setAdding] = useState<{ kind: TweakKind; text: string } | null>(null);
   const [filledFrom, setFilledFrom] = useState<string | null>(null);
@@ -94,6 +104,7 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
   const dishError = showErrors && !dishName.trim() ? 'Name the dish so you can find it later.' : undefined;
   const restaurantError = showErrors && !restaurantName.trim() ? 'Pick a restaurant so we can file this dish.' : undefined;
   const priceNumber = price.trim() === '' ? undefined : Number(price);
+  const dayError = showErrors && (!dayInputToDate(day) ? 'Pick the day you went.' : day > today ? "That's in the future. Pick the day you went." : undefined);
   const priceError = showErrors && priceNumber !== undefined && (!Number.isFinite(priceNumber) || priceNumber < 0) ? 'Enter a price like 18 or 18.50.' : undefined;
 
   /** Typing a dish you've had before fills in how you ordered it last time. */
@@ -106,6 +117,28 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
     setFilledFrom(known.name);
   };
 
+  /** A new photo: use the day it was taken, unless you already chose the day. */
+  const applyPhotoDate = async (file: File) => {
+    const taken = await readPhotoDate(file);
+    if (!taken || taken > new Date()) return;
+    if (daySource === 'default' && !editing) {
+      setDay(toDayInput(taken));
+      setDaySource('photo');
+      setPhotoTime(taken);
+      setPhotoDayOffer(null);
+    } else if (toDayInput(taken) !== day) {
+      setPhotoDayOffer(taken);
+    }
+  };
+
+  /** The ISO date to save: now for today, the photo's own time, the saved time if unchanged, or noon that day. */
+  const dateToSave = (): string | undefined => {
+    if (daySource === 'photo' && photoTime && toDayInput(photoTime) === day) return photoTime.toISOString();
+    if (editing && toDayInput(new Date(editing.date)) === day) return editing.date;
+    if (!editing && day === today) return undefined;
+    return dayInputToDate(day)!.toISOString();
+  };
+
   const addTweak = () => {
     if (!adding?.text.trim()) return;
     setTweaks((prev) => [...prev, { kind: adding.kind, text: adding.text.trim() }]);
@@ -115,7 +148,7 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setShowErrors(true);
-    if (!dishName.trim() || !restaurantName.trim() || (priceNumber !== undefined && (!Number.isFinite(priceNumber) || priceNumber < 0))) return;
+    if (!dishName.trim() || !restaurantName.trim() || !dayInputToDate(day) || day > today || (priceNumber !== undefined && (!Number.isFinite(priceNumber) || priceNumber < 0))) return;
 
     setSaving(true);
     setError(null);
@@ -129,6 +162,7 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
         tweaks,
         notes: notes.trim(),
         price: priceNumber,
+        date: dateToSave(),
         image: photo ? await resizeImage(photo) : editing ? (removedSavedPhoto ? null : undefined) : null,
       });
     } catch (err) {
@@ -182,6 +216,40 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
             <option key={d} value={d} />
           ))}
         </datalist>
+
+        <TextField
+          label="When"
+          type="date"
+          max={today}
+          value={day}
+          error={dayError}
+          hint={
+            photoDayOffer ? (
+              <span className="app-row" style={{ gap: 'var(--space-2)', alignItems: 'center' }}>
+                Your photo is from {formatDate(photoDayOffer.toISOString())}.
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setDay(toDayInput(photoDayOffer));
+                    setDaySource('photo');
+                    setPhotoTime(photoDayOffer);
+                    setPhotoDayOffer(null);
+                  }}
+                >
+                  Use that date
+                </Button>
+              </span>
+            ) : daySource === 'photo' ? (
+              'From your photo. Change it if that\'s not right.'
+            ) : undefined
+          }
+          onChange={(e) => {
+            setDay(e.target.value);
+            setDaySource('user');
+            setPhotoDayOffer(null);
+          }}
+        />
 
         <div className="app-sheet-section">
           <span className="label">How good was it?</span>
@@ -255,7 +323,10 @@ export function LogDishSheet({ mode, dishes, onSave, onClose }: LogDishSheetProp
               tabIndex={-1}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) setPhoto(file);
+                if (file) {
+                  setPhoto(file);
+                  void applyPhotoDate(file);
+                }
                 e.target.value = '';
               }}
             />

@@ -4,6 +4,10 @@ import userEvent from '@testing-library/user-event';
 
 const resized = new Blob(['small'], { type: 'image/jpeg' });
 vi.mock('../lib/resizeImage', () => ({ resizeImage: vi.fn(async () => resized) }));
+vi.mock('../lib/photoDate', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/photoDate')>()),
+  readPhotoDate: vi.fn(async () => undefined),
+}));
 
 const goldenValley = { id: 'osm:W2', address: '6920 Wayzata Boulevard, Golden Valley', lat: 44.97, lon: -93.37 };
 vi.mock('../lib/placeSearch', async (importOriginal) => ({
@@ -13,6 +17,7 @@ vi.mock('../lib/placeSearch', async (importOriginal) => ({
 }));
 
 import { LogDishSheet } from './LogDishSheet';
+import { readPhotoDate, toDayInput } from '../lib/photoDate';
 import { groupDishes } from '../lib/dishes';
 import type { Meal } from '../types';
 
@@ -135,6 +140,57 @@ describe('LogDishSheet', () => {
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
+  it('logs today unless you pick another day, and never a future one', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+    expect(field('When')).toHaveValue(toDayInput(new Date()));
+
+    await userEvent.clear(field('When'));
+    await userEvent.type(field('When'), '2999-01-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByText("That's in the future. Pick the day you went.")).toBeInTheDocument();
+
+    await userEvent.clear(field('When'));
+    await userEvent.type(field('When'), '2026-11-12');
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ date: new Date(2026, 10, 12, 12).toISOString() }));
+  });
+
+  it('saves no date for today, so the visit is stamped with the time you logged it', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+    expect(onSave.mock.calls[0][0].date).toBeUndefined();
+  });
+
+  it('uses the day your photo was taken', async () => {
+    const taken = new Date(2026, 10, 12, 19, 4);
+    vi.mocked(readPhotoDate).mockResolvedValueOnce(taken);
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
+
+    await userEvent.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'bao.jpg', { type: 'image/jpeg' }));
+    expect(await screen.findByText("From your photo. Change it if that's not right.")).toBeInTheDocument();
+    expect(field('When')).toHaveValue('2026-11-12');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save dish' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ date: taken.toISOString() }));
+  });
+
+  it("offers the photo's date instead of overriding a day you already chose", async () => {
+    vi.mocked(readPhotoDate).mockResolvedValueOnce(new Date(2026, 10, 12, 19, 4));
+    render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={vi.fn()} onClose={vi.fn()} />);
+    await userEvent.clear(field('When'));
+    await userEvent.type(field('When'), '2026-11-10');
+
+    await userEvent.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'bao.jpg', { type: 'image/jpeg' }));
+    expect(await screen.findByText(/Your photo is from Nov 12/)).toBeInTheDocument();
+    expect(field('When')).toHaveValue('2026-11-10');
+    await userEvent.click(screen.getByRole('button', { name: 'Use that date' }));
+    expect(field('When')).toHaveValue('2026-11-12');
+  });
+
   it('rejects a price that is not a number', async () => {
     const onSave = vi.fn();
     render(<LogDishSheet mode={{ kind: 'new', prefill: { dishName: 'Bao', restaurantName: 'Bao Down' } }} dishes={[]} onSave={onSave} onClose={vi.fn()} />);
@@ -168,7 +224,7 @@ describe('LogDishSheet', () => {
     expect(screen.getByRole('radio', { name: '5 out of 5, Obsessed' })).toHaveAttribute('aria-checked', 'true');
 
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-    expect(onSave.mock.calls[0][0]).toMatchObject({ dishName: 'Pad see ew', price: 16, notes: 'Great', image: undefined });
+    expect(onSave.mock.calls[0][0]).toMatchObject({ dishName: 'Pad see ew', price: 16, notes: 'Great', image: undefined, date: meal.date });
   });
 
   it('removes the saved photo when asked', async () => {

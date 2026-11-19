@@ -80,7 +80,7 @@ export async function addMeal(input: MealInput, userId: string): Promise<Meal> {
     ...fields,
     imageUrl,
     imagePath,
-    date: new Date().toISOString(),
+    date: fields.date ?? new Date().toISOString(),
   };
 
   try {
@@ -100,6 +100,8 @@ export async function updateMeal(meal: Meal, input: MealInput, userId: string): 
     ...fields,
     // Clearing the price, verdict or place removes the field rather than storing undefined.
     price: fields.price ?? deleteField(),
+    // Editing never clears when you went; undefined keeps the saved date.
+    date: fields.date ?? meal.date,
     verdict: fields.verdict ?? deleteField(),
     place: fields.place ?? deleteField(),
   };
